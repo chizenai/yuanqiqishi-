@@ -566,7 +566,13 @@
                 this.pointer = this.input.activePointer;
                 
                 this.createPlayer();
+                
+                this.isInvincible = true;
+                this.invincibilityTimer = 2000;
+                this.player.setAlpha(0.5);
+                
                 this.createRoom();
+                
                 this.setupControls();
                 this.setupCollisions();
                 
