@@ -11,7 +11,7 @@
             box-sizing: border-box;
         }
         body {
-            background: #1a1a2e;
+            background: #0f0f1a;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -21,6 +21,11 @@
         }
         #game-container {
             position: relative;
+            width: 1200px;
+            height: 700px;
+            min-width: 1200px;
+            min-height: 700px;
+            background: #1a1a2e;
         }
         #ui-layer {
             position: absolute;
@@ -154,6 +159,7 @@
             margin: 10px;
             transition: all 0.2s ease;
             pointer-events: all;
+            font-family: 'Microsoft YaHei', sans-serif;
         }
         .menu-button:hover {
             background: #6a6a8a;
@@ -215,20 +221,19 @@
             position: absolute;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            width: 1200px;
+            height: 700px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #1a1a2e 100%);
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: flex-start;
+            justify-content: center;
             pointer-events: all;
             z-index: 300;
-            padding-top: 60px;
         }
         .start-header {
             text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 30px;
         }
         .game-subtitle {
             font-size: 22px;
@@ -241,7 +246,7 @@
             max-width: 600px;
         }
         .start-button-container {
-            margin-bottom: 50px;
+            margin-bottom: 40px;
         }
         .controls-section {
             width: 100%;
@@ -252,19 +257,20 @@
             font-size: 20px;
             color: #ffd700;
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 25px;
             font-weight: bold;
         }
         .controls-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 25px 40px;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px 20px;
         }
         .control-item {
             display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 15px;
-            padding: 15px 20px;
+            gap: 8px;
+            padding: 15px 10px;
             background: rgba(74, 74, 106, 0.3);
             border: 2px solid rgba(106, 106, 138, 0.4);
             border-radius: 10px;
@@ -281,17 +287,16 @@
             border-radius: 6px;
             font-weight: bold;
             font-size: 13px;
-            min-width: 80px;
             text-align: center;
             border: 2px solid #6a6a8a;
         }
         .control-action {
             color: #c0c0d0;
-            font-size: 15px;
+            font-size: 13px;
+            text-align: center;
         }
         .footer-info {
-            margin-top: auto;
-            margin-bottom: 30px;
+            margin-top: 30px;
             color: #5a5a7a;
             font-size: 12px;
             text-align: center;
@@ -370,7 +375,9 @@
             </div>
             
             <div class="start-button-container">
-                <button class="menu-button" onclick="startGame()" style="font-size: 22px; padding: 20px 60px;">开始游戏</button>
+                <button class="menu-button" onclick="startGame()" style="font-size: 24px; padding: 20px 80px; background: linear-gradient(135deg, #6c5ce7, #a29bfe); border-color: #ffd700;">
+                    🎮 开始游戏
+                </button>
             </div>
             
             <div class="controls-section">
@@ -390,7 +397,7 @@
                     </div>
                     <div class="control-item">
                         <span class="control-key">空格键</span>
-                        <span class="control-action">翻滚闪避（无敌帧）</span>
+                        <span class="control-action">翻滚闪避</span>
                     </div>
                     <div class="control-item">
                         <span class="control-key">R 键</span>
@@ -402,17 +409,17 @@
                     </div>
                     <div class="control-item">
                         <span class="control-key">ESC 键</span>
-                        <span class="control-action">暂停/菜单</span>
+                        <span class="control-action">暂停游戏</span>
                     </div>
                     <div class="control-item">
                         <span class="control-key">提示</span>
-                        <span class="control-action">清完房间可选择天赋</span>
+                        <span class="control-action">清房间选天赋</span>
                     </div>
                 </div>
             </div>
             
             <div class="footer-info">
-                每把武器都有独特的射速和伤害 | 共10个房间，第10关为BOSS战
+                共10个房间 | 第10关为BOSS战 | 消灭怪物有几率掉落武器
             </div>
         </div>
         
@@ -558,6 +565,7 @@
 
             create() {
                 gameScene = this;
+                this.gameState = 'playing';
                 
                 this.cameras.main.setBackgroundColor(0x1a1a2e);
                 
