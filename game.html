@@ -565,19 +565,19 @@
                 
                 this.pointer = this.input.activePointer;
                 
+                this.physics.world.setBounds(0, 0, CONFIG.width, CONFIG.height);
+                
+                this.createRoom(true);
+                
                 this.createPlayer();
                 
                 this.isInvincible = true;
                 this.invincibilityTimer = 5000;
                 
-                this.createRoom();
-                
                 this.setupControls();
                 this.setupCollisions();
                 
                 this.updateUI();
-                
-                this.physics.world.setBounds(0, 0, CONFIG.width, CONFIG.height);
             }
 
             createPlayer() {
@@ -601,7 +601,7 @@
                 this.playerEye2.setDepth(11);
             }
 
-            createRoom() {
+            createRoom(isInitialRoom = false) {
                 this.roomCleared = false;
                 
                 this.enemies.getChildren().forEach(e => {
@@ -630,13 +630,41 @@
                     this.createWall(CONFIG.width - wallThickness, y, wallThickness, wallThickness);
                 }
                 
+                let safeX, safeY;
+                if (isInitialRoom) {
+                    safeX = CONFIG.width / 2;
+                    safeY = CONFIG.height / 2;
+                } else if (this.player) {
+                    safeX = this.player.x;
+                    safeY = this.player.y;
+                } else {
+                    safeX = CONFIG.width / 2;
+                    safeY = CONFIG.height - 100;
+                }
+                
                 const obstacleCount = Phaser.Math.Between(3, 6);
-                for (let i = 0; i < obstacleCount; i++) {
+                let placedObstacles = 0;
+                let attempts = 0;
+                const maxAttempts = 100;
+                
+                while (placedObstacles < obstacleCount && attempts < maxAttempts) {
+                    attempts++;
                     const x = Phaser.Math.Between(120, CONFIG.width - 160);
                     const y = Phaser.Math.Between(120, CONFIG.height - 160);
                     const width = Phaser.Math.Between(1, 3) * wallThickness;
                     const height = Phaser.Math.Between(1, 2) * wallThickness;
-                    this.createWall(x, y, width, height);
+                    
+                    const obstacleCenterX = x + width / 2;
+                    const obstacleCenterY = y + height / 2;
+                    const distance = Phaser.Math.Distance.Between(
+                        obstacleCenterX, obstacleCenterY,
+                        safeX, safeY
+                    );
+                    
+                    if (distance > 150) {
+                        this.createWall(x, y, width, height);
+                        placedObstacles++;
+                    }
                 }
                 
                 if (this.currentRoom === CONFIG.bossRoom) {
@@ -1366,9 +1394,12 @@
                     return;
                 }
                 
-                this.player.setPosition(CONFIG.width / 2, CONFIG.height - 100);
+                const newPlayerX = CONFIG.width / 2;
+                const newPlayerY = CONFIG.height - 100;
                 
-                this.createRoom();
+                this.player.setPosition(newPlayerX, newPlayerY);
+                
+                this.createRoom(false);
                 this.gameState = 'playing';
                 this.updateUI();
             }
@@ -1437,6 +1468,31 @@
                 }
                 
                 this.updateEnemies(time, delta);
+                
+                this.cleanupBullets();
+            }
+            
+            cleanupBullets() {
+                const margin = 50;
+                const worldBounds = this.physics.world.bounds;
+                
+                this.playerBullets.getChildren().forEach(bullet => {
+                    if (bullet.active) {
+                        if (bullet.x < -margin || bullet.x > worldBounds.width + margin ||
+                            bullet.y < -margin || bullet.y > worldBounds.height + margin) {
+                            bullet.destroy();
+                        }
+                    }
+                });
+                
+                this.enemyBullets.getChildren().forEach(bullet => {
+                    if (bullet.active) {
+                        if (bullet.x < -margin || bullet.x > worldBounds.width + margin ||
+                            bullet.y < -margin || bullet.y > worldBounds.height + margin) {
+                            bullet.destroy();
+                        }
+                    }
+                });
             }
 
             updateUI() {
