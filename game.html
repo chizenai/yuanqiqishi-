@@ -878,14 +878,15 @@
             }
 
             bulletHitEnemy(bullet, enemy) {
-                if (!bullet.active || !enemy.active) return;
+                if (!(bullet.body && bullet.body.enable) || !enemy.active) return;
                 
                 const damage = bullet.damage * this.playerStats.damageMultiplier;
                 enemy.health -= damage;
                 
                 this.showDamageNumber(enemy.x, enemy.y - 20, Math.floor(damage));
                 
-                this.createHitParticles(bullet.x, bullet.y, bullet.tint);
+                const bulletColor = bullet.fillColor || 0xffff00;
+                this.createHitParticles(bullet.x, bullet.y, bulletColor);
                 
                 bullet.destroy();
                 
@@ -895,14 +896,15 @@
             }
 
             bulletHitWall(bullet, wall) {
-                if (bullet.active) {
-                    this.createHitParticles(bullet.x, bullet.y, bullet.tint);
+                if (bullet.body && bullet.body.enable) {
+                    const bulletColor = bullet.fillColor || 0xffff00;
+                    this.createHitParticles(bullet.x, bullet.y, bulletColor);
                     bullet.destroy();
                 }
             }
 
             bulletHitPlayer(player, bullet) {
-                if (!bullet.active || this.isInvincible) return;
+                if (!(bullet.body && bullet.body.enable) || this.isInvincible) return;
                 
                 this.takeDamage(bullet.damage);
                 bullet.destroy();
@@ -1217,17 +1219,16 @@
             }
 
             createBullet(x, y, angle, speed, damage, color, isPlayer) {
-                const offsetDistance = 25;
+                const offsetDistance = 30;
                 const startX = x + Math.cos(angle) * offsetDistance;
                 const startY = y + Math.sin(angle) * offsetDistance;
                 
-                const bullet = this.physics.add.sprite(startX, startY, 'pixel');
-                bullet.setDisplaySize(12, 12);
-                bullet.setTint(color);
+                const bullet = this.add.rectangle(startX, startY, 12, 12, color);
                 bullet.setDepth(isPlayer ? 12 : 9);
                 bullet.setOrigin(0.5, 0.5);
                 bullet.setAlpha(1);
                 
+                this.physics.add.existing(bullet);
                 bullet.body.setSize(10, 10);
                 bullet.body.setOffset(1, 1);
                 
@@ -1497,7 +1498,7 @@
                 const worldBounds = this.physics.world.bounds;
                 
                 this.playerBullets.getChildren().forEach(bullet => {
-                    if (bullet.active) {
+                    if (bullet.body && bullet.body.enable) {
                         if (bullet.x < -margin || bullet.x > worldBounds.width + margin ||
                             bullet.y < -margin || bullet.y > worldBounds.height + margin) {
                             bullet.destroy();
@@ -1506,7 +1507,7 @@
                 });
                 
                 this.enemyBullets.getChildren().forEach(bullet => {
-                    if (bullet.active) {
+                    if (bullet.body && bullet.body.enable) {
                         if (bullet.x < -margin || bullet.x > worldBounds.width + margin ||
                             bullet.y < -margin || bullet.y > worldBounds.height + margin) {
                             bullet.destroy();
