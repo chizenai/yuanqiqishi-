@@ -548,7 +548,7 @@
             }
 
             preload() {
-                this.load.image('pixel', 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==');
+                this.load.image('pixel', 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==');
             }
 
             create() {
@@ -878,14 +878,14 @@
             }
 
             bulletHitEnemy(bullet, enemy) {
-                if (!(bullet.body && bullet.body.enable) || !enemy.active) return;
+                if (!bullet.active || !enemy.active) return;
                 
                 const damage = bullet.damage * this.playerStats.damageMultiplier;
                 enemy.health -= damage;
                 
                 this.showDamageNumber(enemy.x, enemy.y - 20, Math.floor(damage));
                 
-                const bulletColor = bullet.fillColor || 0xffff00;
+                const bulletColor = bullet.tintTopLeft || 0xffff00;
                 this.createHitParticles(bullet.x, bullet.y, bulletColor);
                 
                 bullet.destroy();
@@ -896,15 +896,15 @@
             }
 
             bulletHitWall(bullet, wall) {
-                if (bullet.body && bullet.body.enable) {
-                    const bulletColor = bullet.fillColor || 0xffff00;
+                if (bullet.active) {
+                    const bulletColor = bullet.tintTopLeft || 0xffff00;
                     this.createHitParticles(bullet.x, bullet.y, bulletColor);
                     bullet.destroy();
                 }
             }
 
             bulletHitPlayer(player, bullet) {
-                if (!(bullet.body && bullet.body.enable) || this.isInvincible) return;
+                if (!bullet.active || this.isInvincible) return;
                 
                 this.takeDamage(bullet.damage);
                 bullet.destroy();
@@ -1219,18 +1219,20 @@
             }
 
             createBullet(x, y, angle, speed, damage, color, isPlayer) {
-                const offsetDistance = 30;
+                const offsetDistance = 50;
                 const startX = x + Math.cos(angle) * offsetDistance;
                 const startY = y + Math.sin(angle) * offsetDistance;
                 
-                const bullet = this.add.rectangle(startX, startY, 12, 12, color);
+                const bullet = this.physics.add.sprite(startX, startY, 'pixel');
+                bullet.setDisplaySize(12, 12);
                 bullet.setDepth(isPlayer ? 12 : 9);
                 bullet.setOrigin(0.5, 0.5);
                 bullet.setAlpha(1);
                 
-                this.physics.add.existing(bullet);
                 bullet.body.setSize(10, 10);
                 bullet.body.setOffset(1, 1);
+                
+                bullet.setTint(color);
                 
                 bullet.damage = damage;
                 bullet.isPlayer = isPlayer;
@@ -1498,7 +1500,7 @@
                 const worldBounds = this.physics.world.bounds;
                 
                 this.playerBullets.getChildren().forEach(bullet => {
-                    if (bullet.body && bullet.body.enable) {
+                    if (bullet.active) {
                         if (bullet.x < -margin || bullet.x > worldBounds.width + margin ||
                             bullet.y < -margin || bullet.y > worldBounds.height + margin) {
                             bullet.destroy();
@@ -1507,7 +1509,7 @@
                 });
                 
                 this.enemyBullets.getChildren().forEach(bullet => {
-                    if (bullet.body && bullet.body.enable) {
+                    if (bullet.active) {
                         if (bullet.x < -margin || bullet.x > worldBounds.width + margin ||
                             bullet.y < -margin || bullet.y > worldBounds.height + margin) {
                             bullet.destroy();
