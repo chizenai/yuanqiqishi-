@@ -568,8 +568,7 @@
                 this.createPlayer();
                 
                 this.isInvincible = true;
-                this.invincibilityTimer = 2000;
-                this.player.setAlpha(0.5);
+                this.invincibilityTimer = 5000;
                 
                 this.createRoom();
                 
@@ -583,21 +582,22 @@
 
             createPlayer() {
                 this.player = this.physics.add.sprite(CONFIG.width / 2, CONFIG.height / 2, 'pixel');
-                this.player.setDisplaySize(30, 30);
-                this.player.setTint(0x6c5ce7);
+                this.player.setDisplaySize(40, 40);
+                this.player.setTint(0x9b59b6);
                 this.player.setDepth(10);
                 this.player.setCollideWorldBounds(true);
-                this.player.body.setSize(25, 25);
+                this.player.body.setSize(35, 35);
                 this.player.setOrigin(0.5, 0.5);
+                this.player.setAlpha(1);
                 
-                this.playerEye1 = this.add.sprite(this.player.x - 5, this.player.y - 5, 'pixel');
-                this.playerEye1.setDisplaySize(6, 6);
-                this.playerEye1.setTint(0x5f4fcc);
+                this.playerEye1 = this.add.sprite(this.player.x - 8, this.player.y - 5, 'pixel');
+                this.playerEye1.setDisplaySize(8, 8);
+                this.playerEye1.setTint(0xffffff);
                 this.playerEye1.setDepth(11);
                 
-                this.playerEye2 = this.add.sprite(this.player.x + 5, this.player.y - 5, 'pixel');
-                this.playerEye2.setDisplaySize(6, 6);
-                this.playerEye2.setTint(0x5f4fcc);
+                this.playerEye2 = this.add.sprite(this.player.x + 8, this.player.y - 5, 'pixel');
+                this.playerEye2.setDisplaySize(8, 8);
+                this.playerEye2.setTint(0xffffff);
                 this.playerEye2.setDepth(11);
             }
 
@@ -732,12 +732,12 @@
                 enemy.health = type === 'melee' ? 3 + Math.floor(this.currentRoom / 2) : 4 + Math.floor(this.currentRoom / 2);
                 enemy.maxHealth = enemy.health;
                 enemy.damage = type === 'melee' ? 2 : 1;
-                enemy.speed = type === 'melee' ? 120 : 80;
+                enemy.speed = type === 'melee' ? 80 : 50;
                 enemy.attackCooldown = 0;
-                enemy.attackRate = type === 'melee' ? 1000 : 1500;
+                enemy.attackRate = type === 'melee' ? 2000 : 2500;
                 enemy.isAttacking = false;
-                enemy.activated = true;
-                enemy.visionRange = 800;
+                enemy.activated = false;
+                enemy.visionRange = 400;
                 enemy.eye1 = eye1;
                 enemy.eye2 = eye2;
                 
@@ -1176,11 +1176,12 @@
 
             createBullet(x, y, angle, speed, damage, color, isPlayer) {
                 const bullet = this.physics.add.sprite(x, y, 'pixel');
-                bullet.setDisplaySize(8, 8);
+                bullet.setDisplaySize(12, 12);
                 bullet.setTint(color);
                 bullet.setDepth(isPlayer ? 12 : 9);
                 bullet.setOrigin(0.5, 0.5);
-                bullet.body.setSize(6, 6);
+                bullet.body.setSize(10, 10);
+                bullet.setAlpha(1);
                 
                 bullet.damage = damage;
                 bullet.isPlayer = isPlayer;
@@ -1381,9 +1382,19 @@
                 
                 if (this.isInvincible && !this.isDashing) {
                     this.invincibilityTimer -= delta;
+                    
+                    const blinkRate = 200;
+                    const isBlinkOn = Math.floor(this.invincibilityTimer / blinkRate) % 2 === 0;
+                    this.player.setAlpha(isBlinkOn ? 0.7 : 1);
+                    
+                    if (this.playerEye1) this.playerEye1.setAlpha(isBlinkOn ? 0.7 : 1);
+                    if (this.playerEye2) this.playerEye2.setAlpha(isBlinkOn ? 0.7 : 1);
+                    
                     if (this.invincibilityTimer <= 0) {
                         this.isInvincible = false;
                         this.player.setAlpha(1);
+                        if (this.playerEye1) this.playerEye1.setAlpha(1);
+                        if (this.playerEye2) this.playerEye2.setAlpha(1);
                     }
                 }
                 
