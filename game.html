@@ -567,9 +567,9 @@
                 
                 this.physics.world.setBounds(0, 0, CONFIG.width, CONFIG.height);
                 
-                this.createRoom(true);
-                
                 this.createPlayer();
+                
+                this.createRoom(true);
                 
                 this.isInvincible = true;
                 this.invincibilityTimer = 5000;
@@ -581,14 +581,18 @@
             }
 
             createPlayer() {
-                this.player = this.physics.add.sprite(CONFIG.width / 2, CONFIG.height / 2, 'pixel');
+                const startX = CONFIG.width / 2;
+                const startY = CONFIG.height / 2;
+                
+                this.player = this.physics.add.sprite(startX, startY, 'pixel');
                 this.player.setDisplaySize(40, 40);
                 this.player.setTint(0x9b59b6);
                 this.player.setDepth(10);
-                this.player.setCollideWorldBounds(true);
-                this.player.body.setSize(35, 35);
                 this.player.setOrigin(0.5, 0.5);
                 this.player.setAlpha(1);
+                
+                this.player.body.setSize(35, 35);
+                this.player.body.setOffset(2.5, 2.5);
                 
                 this.playerEye1 = this.add.sprite(this.player.x - 8, this.player.y - 5, 'pixel');
                 this.playerEye1.setDisplaySize(8, 8);
@@ -680,7 +684,11 @@
                 wall.setOrigin(0, 0);
                 wall.setTint(0x4a4a6a);
                 wall.setDepth(5);
-                wall.body.updateFromGameObject();
+                
+                wall.body.setSize(width, height);
+                wall.body.setOffset(0, 0);
+                wall.refreshBody();
+                
                 this.walls.add(wall);
             }
 
@@ -743,8 +751,14 @@
                 
                 enemy.setDepth(8);
                 enemy.setOrigin(0.5, 0.5);
-                enemy.body.setSize(type === 'melee' ? 35 : 25, type === 'melee' ? 28 : 25);
-                enemy.setCollideWorldBounds(true);
+                
+                if (type === 'melee') {
+                    enemy.body.setSize(35, 28);
+                    enemy.body.setOffset(2.5, 2);
+                } else {
+                    enemy.body.setSize(25, 25);
+                    enemy.body.setOffset(2.5, 2.5);
+                }
                 
                 const eye1 = this.add.sprite(x - (type === 'melee' ? 5 : 4), y - (type === 'melee' ? 2 : 4), 'pixel');
                 eye1.setDisplaySize(type === 'melee' ? 4 : 6, type === 'melee' ? 4 : 6);
@@ -779,7 +793,7 @@
                 boss.setDepth(8);
                 boss.setOrigin(0.5, 0.5);
                 boss.body.setSize(70, 70);
-                boss.setCollideWorldBounds(true);
+                boss.body.setOffset(5, 5);
                 
                 const eye1 = this.add.sprite(boss.x - 12, boss.y - 8, 'pixel');
                 eye1.setDisplaySize(12, 12);
@@ -1203,13 +1217,19 @@
             }
 
             createBullet(x, y, angle, speed, damage, color, isPlayer) {
-                const bullet = this.physics.add.sprite(x, y, 'pixel');
+                const offsetDistance = 25;
+                const startX = x + Math.cos(angle) * offsetDistance;
+                const startY = y + Math.sin(angle) * offsetDistance;
+                
+                const bullet = this.physics.add.sprite(startX, startY, 'pixel');
                 bullet.setDisplaySize(12, 12);
                 bullet.setTint(color);
                 bullet.setDepth(isPlayer ? 12 : 9);
                 bullet.setOrigin(0.5, 0.5);
-                bullet.body.setSize(10, 10);
                 bullet.setAlpha(1);
+                
+                bullet.body.setSize(10, 10);
+                bullet.body.setOffset(1, 1);
                 
                 bullet.damage = damage;
                 bullet.isPlayer = isPlayer;
