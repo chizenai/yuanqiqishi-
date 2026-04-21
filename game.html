@@ -301,19 +301,6 @@
             font-size: 12px;
             text-align: center;
         }
-        .damage-number {
-            position: absolute;
-            color: #ff4757;
-            font-weight: bold;
-            font-size: 16px;
-            pointer-events: none;
-            z-index: 150;
-            animation: floatUp 1s ease-out forwards;
-        }
-        @keyframes floatUp {
-            0% { opacity: 1; transform: translateY(0); }
-            100% { opacity: 0; transform: translateY(-30px); }
-        }
     </style>
 </head>
 <body>
@@ -538,8 +525,9 @@
                 this.currentWeaponIndex = 0;
                 this.lastFireTime = 0;
                 
+                this.cursors = null;
                 this.keys = {};
-                this.mouse = { x: 0, y: 0, down: false };
+                this.pointer = null;
                 
                 this.isDashing = false;
                 this.dashCooldownTimer = 0;
@@ -577,36 +565,53 @@
                 
                 this.particles = this.add.particles('pixel');
                 
+                this.pointer = this.input.activePointer;
+                
                 this.createPlayer();
                 this.createRoom();
                 this.setupControls();
                 this.setupCollisions();
                 
                 this.updateUI();
+                
+                this.physics.world.setBounds(0, 0, CONFIG.width, CONFIG.height);
             }
 
             createPlayer() {
-                this.player = this.add.graphics();
-                this.player.fillStyle(0x6c5ce7, 1);
-                this.player.fillRect(-15, -15, 30, 30);
-                this.player.fillStyle(0x5f4fcc, 1);
-                this.player.fillRect(-12, -12, 8, 8);
-                this.player.fillRect(4, -12, 8, 8);
-                
-                this.playerContainer = this.physics.add.sprite(CONFIG.width / 2, CONFIG.height / 2, 'pixel');
-                this.playerContainer.setDisplaySize(30, 30);
-                this.playerContainer.setCollideWorldBounds(true);
-                this.playerContainer.setDepth(10);
-                this.playerContainer.body.setSize(25, 25);
-                
-                this.player.setPosition(this.playerContainer.x, this.playerContainer.y);
+                this.player = this.physics.add.sprite(CONFIG.width / 2, CONFIG.height / 2, 'pixel');
+                this.player.setDisplaySize(30, 30);
+                this.player.setTint(0x6c5ce7);
                 this.player.setDepth(10);
+                this.player.setCollideWorldBounds(true);
+                this.player.body.setSize(25, 25);
+                this.player.setOrigin(0.5, 0.5);
+                
+                this.playerEye1 = this.add.sprite(this.player.x - 5, this.player.y - 5, 'pixel');
+                this.playerEye1.setDisplaySize(6, 6);
+                this.playerEye1.setTint(0x5f4fcc);
+                this.playerEye1.setDepth(11);
+                
+                this.playerEye2 = this.add.sprite(this.player.x + 5, this.player.y - 5, 'pixel');
+                this.playerEye2.setDisplaySize(6, 6);
+                this.playerEye2.setTint(0x5f4fcc);
+                this.playerEye2.setDepth(11);
             }
 
             createRoom() {
                 this.roomCleared = false;
+                
+                this.enemies.getChildren().forEach(e => {
+                    if (e.sprite) e.sprite.destroy();
+                    if (e.eye1) e.eye1.destroy();
+                    if (e.eye2) e.eye2.destroy();
+                });
                 this.enemies.clear(true, true);
+                
+                this.items.getChildren().forEach(i => {
+                    if (i.sprite) i.sprite.destroy();
+                });
                 this.items.clear(true, true);
+                
                 this.walls.clear(true, true);
                 
                 const wallThickness = 40;
@@ -638,24 +643,13 @@
             }
 
             createWall(x, y, width, height) {
-                const wall = this.add.graphics();
-                wall.fillStyle(0x4a4a6a, 1);
-                wall.fillRect(0, 0, width, height);
-                wall.fillStyle(0x5a5a7a, 1);
-                wall.fillRect(2, 2, width - 4, 4);
-                wall.fillRect(2, 2, 4, height - 4);
-                wall.fillStyle(0x3a3a5a, 1);
-                wall.fillRect(width - 4, 4, 2, height - 6);
-                wall.fillRect(4, height - 4, width - 6, 2);
-                
-                const wallSprite = this.physics.add.staticSprite(x, y, 'pixel');
-                wallSprite.setDisplaySize(width, height);
-                wallSprite.setOrigin(0, 0);
-                wallSprite.body.updateFromGameObject();
-                this.walls.add(wallSprite);
-                
-                wall.setPosition(x, y);
+                const wall = this.physics.add.staticSprite(x, y, 'pixel');
+                wall.setDisplaySize(width, height);
+                wall.setOrigin(0, 0);
+                wall.setTint(0x4a4a6a);
                 wall.setDepth(5);
+                wall.body.updateFromGameObject();
+                this.walls.add(wall);
             }
 
             spawnEnemies() {
@@ -666,7 +660,7 @@
                     const x = Phaser.Math.Between(100, CONFIG.width - 100);
                     const y = Phaser.Math.Between(100, CONFIG.height - 100);
                     
-                    if (Phaser.Math.Distance.Between(x, y, this.playerContainer.x, this.playerContainer.y) < 200) {
+                    if (this.player && Phaser.Math.Distance.Between(x, y, this.player.x, this.player.y) < 200) {
                         continue;
                     }
                     
@@ -675,33 +669,31 @@
             }
 
             spawnEnemy(x, y, type) {
-                const graphics = this.add.graphics();
+                const enemy = this.physics.add.sprite(x, y, 'pixel');
                 
                 if (type === 'melee') {
-                    graphics.fillStyle(0x2ecc71, 1);
-                    graphics.fillEllipse(0, 0, 20, 16);
-                    graphics.fillStyle(0x27ae60, 1);
-                    graphics.fillEllipse(-5, -2, 4, 4);
-                    graphics.fillEllipse(5, -2, 4, 4);
+                    enemy.setDisplaySize(40, 32);
+                    enemy.setTint(0x2ecc71);
                 } else {
-                    graphics.fillStyle(0xe74c3c, 1);
-                    graphics.fillRect(-12, -12, 24, 24);
-                    graphics.fillStyle(0xc0392b, 1);
-                    graphics.fillRect(-8, -8, 6, 6);
-                    graphics.fillRect(2, -8, 6, 6);
-                    graphics.fillStyle(0x7f8c8d, 1);
-                    graphics.fillRect(12, -3, 15, 6);
+                    enemy.setDisplaySize(30, 30);
+                    enemy.setTint(0xe74c3c);
                 }
                 
-                const enemy = this.physics.add.sprite(x, y, 'pixel');
-                enemy.setDisplaySize(type === 'melee' ? 40 : 30, type === 'melee' ? 32 : 30);
                 enemy.setDepth(8);
+                enemy.setOrigin(0.5, 0.5);
                 enemy.body.setSize(type === 'melee' ? 35 : 25, type === 'melee' ? 28 : 25);
+                enemy.setCollideWorldBounds(true);
                 
-                graphics.setPosition(x, y);
-                graphics.setDepth(8);
+                const eye1 = this.add.sprite(x - (type === 'melee' ? 5 : 4), y - (type === 'melee' ? 2 : 4), 'pixel');
+                eye1.setDisplaySize(type === 'melee' ? 4 : 6, type === 'melee' ? 4 : 6);
+                eye1.setTint(0x27ae60);
+                eye1.setDepth(9);
                 
-                enemy.graphics = graphics;
+                const eye2 = this.add.sprite(x + (type === 'melee' ? 5 : 4), y - (type === 'melee' ? 2 : 4), 'pixel');
+                eye2.setDisplaySize(type === 'melee' ? 4 : 6, type === 'melee' ? 4 : 6);
+                eye2.setTint(0x27ae60);
+                eye2.setDepth(9);
+                
                 enemy.type = type;
                 enemy.health = type === 'melee' ? 3 + Math.floor(this.currentRoom / 2) : 4 + Math.floor(this.currentRoom / 2);
                 enemy.maxHealth = enemy.health;
@@ -710,33 +702,33 @@
                 enemy.attackCooldown = 0;
                 enemy.attackRate = type === 'melee' ? 1000 : 1500;
                 enemy.isAttacking = false;
-                enemy.activated = false;
-                enemy.visionRange = 300;
+                enemy.activated = true;
+                enemy.visionRange = 800;
+                enemy.eye1 = eye1;
+                enemy.eye2 = eye2;
                 
                 this.enemies.add(enemy);
             }
 
             spawnBoss() {
-                const graphics = this.add.graphics();
-                graphics.fillStyle(0x9b59b6, 1);
-                graphics.fillRect(-40, -40, 80, 80);
-                graphics.fillStyle(0x8e44ad, 1);
-                graphics.fillRect(-35, -35, 70, 70);
-                graphics.fillStyle(0xe74c3c, 1);
-                graphics.fillRect(-25, -15, 12, 12);
-                graphics.fillRect(13, -15, 12, 12);
-                graphics.fillStyle(0xf1c40f, 1);
-                graphics.fillRect(-10, 10, 20, 8);
-                
                 const boss = this.physics.add.sprite(CONFIG.width / 2, 150, 'pixel');
                 boss.setDisplaySize(80, 80);
+                boss.setTint(0x9b59b6);
                 boss.setDepth(8);
+                boss.setOrigin(0.5, 0.5);
                 boss.body.setSize(70, 70);
+                boss.setCollideWorldBounds(true);
                 
-                graphics.setPosition(boss.x, boss.y);
-                graphics.setDepth(8);
+                const eye1 = this.add.sprite(boss.x - 12, boss.y - 8, 'pixel');
+                eye1.setDisplaySize(12, 12);
+                eye1.setTint(0xe74c3c);
+                eye1.setDepth(9);
                 
-                boss.graphics = graphics;
+                const eye2 = this.add.sprite(boss.x + 12, boss.y - 8, 'pixel');
+                eye2.setDisplaySize(12, 12);
+                eye2.setTint(0xe74c3c);
+                eye2.setDepth(9);
+                
                 boss.type = 'boss';
                 boss.health = 50;
                 boss.maxHealth = 50;
@@ -748,11 +740,15 @@
                 boss.activated = true;
                 boss.phase = 1;
                 boss.visionRange = 800;
+                boss.eye1 = eye1;
+                boss.eye2 = eye2;
                 
                 this.enemies.add(boss);
             }
 
             setupControls() {
+                this.cursors = this.input.keyboard.createCursorKeys();
+                
                 this.keys.w = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
                 this.keys.a = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
                 this.keys.s = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
@@ -763,23 +759,6 @@
                 this.keys.one = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ONE);
                 this.keys.two = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TWO);
                 this.keys.three = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.THREE);
-                
-                this.input.on('pointermove', (pointer) => {
-                    this.mouse.x = pointer.x;
-                    this.mouse.y = pointer.y;
-                });
-                
-                this.input.on('pointerdown', (pointer) => {
-                    if (pointer.leftButtonDown()) {
-                        this.mouse.down = true;
-                    }
-                });
-                
-                this.input.on('pointerup', (pointer) => {
-                    if (!pointer.leftButtonDown()) {
-                        this.mouse.down = false;
-                    }
-                });
                 
                 this.keys.space.on('down', () => {
                     if (this.gameState === 'playing' && !this.isDashing && this.dashCooldownTimer <= 0) {
@@ -807,19 +786,19 @@
             }
 
             setupCollisions() {
-                this.physics.add.collider(this.playerContainer, this.walls);
+                this.physics.add.collider(this.player, this.walls);
                 this.physics.add.collider(this.enemies, this.walls);
                 this.physics.add.collider(this.enemies, this.enemies);
                 
                 this.physics.add.overlap(this.playerBullets, this.enemies, this.bulletHitEnemy, null, this);
                 this.physics.add.overlap(this.playerBullets, this.walls, this.bulletHitWall, null, this);
                 
-                this.physics.add.overlap(this.enemyBullets, this.playerContainer, this.bulletHitPlayer, null, this);
+                this.physics.add.overlap(this.enemyBullets, this.player, this.bulletHitPlayer, null, this);
                 this.physics.add.overlap(this.enemyBullets, this.walls, this.bulletHitWall, null, this);
                 
-                this.physics.add.overlap(this.playerContainer, this.items, this.collectItem, null, this);
+                this.physics.add.overlap(this.player, this.items, this.collectItem, null, this);
                 
-                this.physics.add.overlap(this.playerContainer, this.enemies, this.playerEnemyCollision, null, this);
+                this.physics.add.overlap(this.player, this.enemies, this.playerEnemyCollision, null, this);
             }
 
             bulletHitEnemy(bullet, enemy) {
@@ -830,7 +809,7 @@
                 
                 this.showDamageNumber(enemy.x, enemy.y - 20, Math.floor(damage));
                 
-                this.createHitParticles(bullet.x, bullet.y, bullet.color);
+                this.createHitParticles(bullet.x, bullet.y, bullet.tint);
                 
                 bullet.destroy();
                 
@@ -841,7 +820,7 @@
 
             bulletHitWall(bullet, wall) {
                 if (bullet.active) {
-                    this.createHitParticles(bullet.x, bullet.y, bullet.color);
+                    this.createHitParticles(bullet.x, bullet.y, bullet.tint);
                     bullet.destroy();
                 }
             }
@@ -890,7 +869,8 @@
             killEnemy(enemy) {
                 this.createDeathParticles(enemy.x, enemy.y, enemy.type === 'boss' ? 0x9b59b6 : (enemy.type === 'melee' ? 0x2ecc71 : 0xe74c3c));
                 
-                enemy.graphics.destroy();
+                if (enemy.eye1) enemy.eye1.destroy();
+                if (enemy.eye2) enemy.eye2.destroy();
                 enemy.destroy();
                 this.killCount++;
                 
@@ -905,10 +885,6 @@
                         e.phase = 2;
                         e.attackRate = 800;
                         e.speed = 90;
-                        const flash = this.add.graphics();
-                        flash.fillStyle(0xffffff, 0.8);
-                        flash.fillRect(e.x - 50, e.y - 50, 100, 100);
-                        this.time.delayedCall(200, () => flash.destroy());
                     }
                 });
                 
@@ -929,24 +905,17 @@
                 const weaponKey = Phaser.Utils.Array.GetRandom(availableWeapons);
                 const weaponData = WEAPONS[weaponKey];
                 
-                const graphics = this.add.graphics();
-                graphics.fillStyle(weaponData.color, 1);
-                graphics.fillRect(-15, -8, 30, 16);
-                graphics.fillStyle(0x333333, 1);
-                graphics.fillRect(-12, -5, 8, 10);
-                
                 const item = this.physics.add.sprite(x, y, 'pixel');
                 item.setDisplaySize(30, 16);
+                item.setTint(weaponData.color);
                 item.setDepth(6);
+                item.setOrigin(0.5, 0.5);
                 
-                graphics.setPosition(x, y);
-                graphics.setDepth(6);
-                
-                item.graphics = graphics;
                 item.type = 'weapon';
                 item.weaponKey = weaponKey;
-                item.floatTween = this.tweens.add({
-                    targets: [item, graphics],
+                
+                this.tweens.add({
+                    targets: item,
                     y: y - 10,
                     duration: 800,
                     yoyo: true,
@@ -983,8 +952,6 @@
                     this.updateUI();
                 }
                 
-                item.floatTween.stop();
-                item.graphics.destroy();
                 item.destroy();
             }
 
@@ -1048,8 +1015,8 @@
                 
                 if (dx === 0 && dy === 0) {
                     const angle = Phaser.Math.Angle.Between(
-                        this.playerContainer.x, this.playerContainer.y,
-                        this.mouse.x, this.mouse.y
+                        this.player.x, this.player.y,
+                        this.pointer.worldX, this.pointer.worldY
                     );
                     dx = Math.cos(angle);
                     dy = Math.sin(angle);
@@ -1138,8 +1105,8 @@
                 this.lastFireTime = now;
                 
                 const angle = Phaser.Math.Angle.Between(
-                    this.playerContainer.x, this.playerContainer.y,
-                    this.mouse.x, this.mouse.y
+                    this.player.x, this.player.y,
+                    this.pointer.worldX, this.pointer.worldY
                 );
                 
                 for (let i = 0; i < weapon.bulletCount; i++) {
@@ -1148,8 +1115,8 @@
                     );
                     
                     const bullet = this.createBullet(
-                        this.playerContainer.x,
-                        this.playerContainer.y,
+                        this.player.x,
+                        this.player.y,
                         spreadAngle,
                         weapon.bulletSpeed,
                         weapon.damage,
@@ -1162,24 +1129,15 @@
             }
 
             createBullet(x, y, angle, speed, damage, color, isPlayer) {
-                const graphics = this.add.graphics();
-                graphics.fillStyle(color, 1);
-                graphics.fillRect(-4, -4, 8, 8);
-                
                 const bullet = this.physics.add.sprite(x, y, 'pixel');
                 bullet.setDisplaySize(8, 8);
+                bullet.setTint(color);
                 bullet.setDepth(isPlayer ? 12 : 9);
+                bullet.setOrigin(0.5, 0.5);
                 bullet.body.setSize(6, 6);
                 
-                graphics.setPosition(x, y);
-                graphics.setDepth(bullet.depth);
-                
-                bullet.graphics = graphics;
                 bullet.damage = damage;
-                bullet.color = color;
                 bullet.isPlayer = isPlayer;
-                bullet.angle = angle;
-                bullet.speed = speed;
                 
                 bullet.body.velocity.x = Math.cos(angle) * speed;
                 bullet.body.velocity.y = Math.sin(angle) * speed;
@@ -1193,7 +1151,7 @@
                     
                     const distance = Phaser.Math.Distance.Between(
                         enemy.x, enemy.y,
-                        this.playerContainer.x, this.playerContainer.y
+                        this.player.x, this.player.y
                     );
                     
                     if (!enemy.activated && distance < enemy.visionRange) {
@@ -1208,7 +1166,7 @@
                     
                     const angle = Phaser.Math.Angle.Between(
                         enemy.x, enemy.y,
-                        this.playerContainer.x, this.playerContainer.y
+                        this.player.x, this.player.y
                     );
                     
                     if (enemy.type === 'melee') {
@@ -1243,8 +1201,13 @@
                         }
                     }
                     
-                    if (enemy.graphics) {
-                        enemy.graphics.setPosition(enemy.x, enemy.y);
+                    if (enemy.eye1) {
+                        enemy.eye1.setPosition(enemy.x - (enemy.type === 'melee' ? 5 : (enemy.type === 'boss' ? 12 : 4)), 
+                                                enemy.y - (enemy.type === 'melee' ? 2 : (enemy.type === 'boss' ? 8 : 4)));
+                    }
+                    if (enemy.eye2) {
+                        enemy.eye2.setPosition(enemy.x + (enemy.type === 'melee' ? 5 : (enemy.type === 'boss' ? 12 : 4)), 
+                                                enemy.y - (enemy.type === 'melee' ? 2 : (enemy.type === 'boss' ? 8 : 4)));
                     }
                 });
             }
@@ -1356,26 +1319,11 @@
                     return;
                 }
                 
-                this.playerContainer.setPosition(CONFIG.width / 2, CONFIG.height - 100);
-                this.player.setPosition(this.playerContainer.x, this.playerContainer.y);
+                this.player.setPosition(CONFIG.width / 2, CONFIG.height - 100);
                 
                 this.createRoom();
                 this.gameState = 'playing';
                 this.updateUI();
-            }
-
-            updateBullets() {
-                this.playerBullets.getChildren().forEach(bullet => {
-                    if (bullet.active && bullet.graphics) {
-                        bullet.graphics.setPosition(bullet.x, bullet.y);
-                    }
-                });
-                
-                this.enemyBullets.getChildren().forEach(bullet => {
-                    if (bullet.active && bullet.graphics) {
-                        bullet.graphics.setPosition(bullet.x, bullet.y);
-                    }
-                });
             }
 
             update(time, delta) {
@@ -1407,33 +1355,31 @@
                         moveY /= length;
                     }
                     
-                    this.playerContainer.body.velocity.x = moveX * this.playerStats.speed;
-                    this.playerContainer.body.velocity.y = moveY * this.playerStats.speed;
+                    this.player.body.velocity.x = moveX * this.playerStats.speed;
+                    this.player.body.velocity.y = moveY * this.playerStats.speed;
                 } else {
-                    this.playerContainer.body.velocity.x = this.dashDirection.x * CONFIG.dashSpeed;
-                    this.playerContainer.body.velocity.y = this.dashDirection.y * CONFIG.dashSpeed;
+                    this.player.body.velocity.x = this.dashDirection.x * CONFIG.dashSpeed;
+                    this.player.body.velocity.y = this.dashDirection.y * CONFIG.dashSpeed;
                 }
                 
-                this.player.setPosition(this.playerContainer.x, this.playerContainer.y);
+                if (this.playerEye1) {
+                    this.playerEye1.setPosition(this.player.x - 5, this.player.y - 5);
+                }
+                if (this.playerEye2) {
+                    this.playerEye2.setPosition(this.player.x + 5, this.player.y - 5);
+                }
                 
                 const angle = Phaser.Math.Angle.Between(
-                    this.playerContainer.x, this.playerContainer.y,
-                    this.mouse.x, this.mouse.y
+                    this.player.x, this.player.y,
+                    this.pointer.worldX, this.pointer.worldY
                 );
                 this.player.setRotation(angle + Math.PI / 4);
                 
-                if (this.mouse.down) {
+                if (this.pointer.isDown) {
                     this.fireWeapon();
                 }
                 
                 this.updateEnemies(time, delta);
-                this.updateBullets();
-                
-                this.items.getChildren().forEach(item => {
-                    if (item.active && item.graphics) {
-                        item.graphics.setPosition(item.x, item.y);
-                    }
-                });
             }
 
             updateUI() {
