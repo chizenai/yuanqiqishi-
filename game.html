@@ -30,6 +30,7 @@
             height: 100%;
             pointer-events: none;
             z-index: 100;
+            display: none;
         }
         .ui-panel {
             position: absolute;
@@ -1429,6 +1430,7 @@
 
         function startGame() {
             document.getElementById('start-menu').style.display = 'none';
+            document.getElementById('ui-layer').style.display = 'block';
             
             if (gameInstance) {
                 gameInstance.destroy(true);
@@ -1448,6 +1450,8 @@
             document.getElementById('game-over-menu').style.display = 'none';
             document.getElementById('victory-menu').style.display = 'none';
             document.getElementById('buff-selection').style.display = 'none';
+            document.getElementById('start-menu').style.display = 'none';
+            document.getElementById('ui-layer').style.display = 'block';
             
             if (gameInstance) {
                 gameInstance.destroy(true);
