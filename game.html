@@ -217,25 +217,84 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: #1a1a2e;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
             pointer-events: all;
             z-index: 300;
+            padding-top: 60px;
+        }
+        .start-header {
+            text-align: center;
+            margin-bottom: 40px;
         }
         .game-subtitle {
-            font-size: 20px;
+            font-size: 22px;
             color: #8a8aaa;
+            margin-bottom: 10px;
+        }
+        .game-description {
+            font-size: 16px;
+            color: #6a6a8a;
+            max-width: 600px;
+        }
+        .start-button-container {
             margin-bottom: 50px;
         }
-        .controls-info {
-            color: #6a6a8a;
-            font-size: 14px;
-            margin-top: 40px;
+        .controls-section {
+            width: 100%;
+            max-width: 900px;
+            padding: 0 40px;
+        }
+        .controls-title {
+            font-size: 20px;
+            color: #ffd700;
             text-align: center;
-            line-height: 2;
+            margin-bottom: 30px;
+            font-weight: bold;
+        }
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 25px 40px;
+        }
+        .control-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px 20px;
+            background: rgba(74, 74, 106, 0.3);
+            border: 2px solid rgba(106, 106, 138, 0.4);
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+        .control-item:hover {
+            background: rgba(74, 74, 106, 0.5);
+            border-color: #ffd700;
+        }
+        .control-key {
+            background: #4a4a6a;
+            color: #fff;
+            padding: 8px 15px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 13px;
+            min-width: 80px;
+            text-align: center;
+            border: 2px solid #6a6a8a;
+        }
+        .control-action {
+            color: #c0c0d0;
+            font-size: 15px;
+        }
+        .footer-info {
+            margin-top: auto;
+            margin-bottom: 30px;
+            color: #5a5a7a;
+            font-size: 12px;
+            text-align: center;
         }
         .damage-number {
             position: absolute;
@@ -304,14 +363,56 @@
         </div>
         
         <div id="start-menu">
-            <h1 class="menu-title">元气骑士</h1>
-            <p class="game-subtitle">像素射击冒险</p>
-            <button class="menu-button" onclick="startGame()">开始游戏</button>
-            <div class="controls-info">
-                <p>WASD - 移动</p>
-                <p>鼠标移动 - 瞄准 | 鼠标左键 - 射击</p>
-                <p>空格 - 翻滚闪避 | R - 换弹</p>
-                <p>1/2/3 - 切换武器 | ESC - 暂停</p>
+            <div class="start-header">
+                <h1 class="menu-title">元气骑士</h1>
+                <p class="game-subtitle">像素射击冒险</p>
+                <p class="game-description">一款俯视2D弹幕射击游戏，消灭所有怪物，收集武器，挑战BOSS！</p>
+            </div>
+            
+            <div class="start-button-container">
+                <button class="menu-button" onclick="startGame()" style="font-size: 22px; padding: 20px 60px;">开始游戏</button>
+            </div>
+            
+            <div class="controls-section">
+                <h2 class="controls-title">操作说明</h2>
+                <div class="controls-grid">
+                    <div class="control-item">
+                        <span class="control-key">W A S D</span>
+                        <span class="control-action">8方向移动</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="control-key">鼠标移动</span>
+                        <span class="control-action">瞄准方向</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="control-key">鼠标左键</span>
+                        <span class="control-action">射击（按住持续）</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="control-key">空格键</span>
+                        <span class="control-action">翻滚闪避（无敌帧）</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="control-key">R 键</span>
+                        <span class="control-action">手动换弹</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="control-key">1 / 2 / 3</span>
+                        <span class="control-action">切换武器</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="control-key">ESC 键</span>
+                        <span class="control-action">暂停/菜单</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="control-key">提示</span>
+                        <span class="control-action">清完房间可选择天赋</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="footer-info">
+                每把武器都有独特的射速和伤害 | 共10个房间，第10关为BOSS战
             </div>
         </div>
         
