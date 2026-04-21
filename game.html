@@ -590,6 +590,7 @@
                 this.player.setDepth(10);
                 this.player.setOrigin(0.5, 0.5);
                 this.player.setAlpha(1);
+                this.player.setCollideWorldBounds(true);
                 
                 this.player.body.setSize(35, 35);
                 this.player.body.setOffset(2.5, 2.5);
@@ -623,16 +624,6 @@
                 this.walls.clear(true, true);
                 
                 const wallThickness = 40;
-                
-                for (let x = 0; x < CONFIG.width; x += wallThickness) {
-                    this.createWall(x, 0, wallThickness, wallThickness);
-                    this.createWall(x, CONFIG.height - wallThickness, wallThickness, wallThickness);
-                }
-                
-                for (let y = wallThickness; y < CONFIG.height - wallThickness; y += wallThickness) {
-                    this.createWall(0, y, wallThickness, wallThickness);
-                    this.createWall(CONFIG.width - wallThickness, y, wallThickness, wallThickness);
-                }
                 
                 let safeX, safeY;
                 if (isInitialRoom) {
@@ -751,6 +742,7 @@
                 
                 enemy.setDepth(8);
                 enemy.setOrigin(0.5, 0.5);
+                enemy.setCollideWorldBounds(true);
                 
                 if (type === 'melee') {
                     enemy.body.setSize(35, 28);
@@ -792,6 +784,7 @@
                 boss.setTint(0x9b59b6);
                 boss.setDepth(8);
                 boss.setOrigin(0.5, 0.5);
+                boss.setCollideWorldBounds(true);
                 boss.body.setSize(70, 70);
                 boss.body.setOffset(5, 5);
                 
