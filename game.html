@@ -1,0 +1,1460 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>元气骑士 - 像素射击游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #1a1a2e;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Microsoft YaHei', sans-serif;
+            overflow: hidden;
+        }
+        #game-container {
+            position: relative;
+        }
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+        .ui-panel {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid #4a4a6a;
+            border-radius: 8px;
+            padding: 10px;
+            color: #fff;
+            font-size: 14px;
+        }
+        #health-panel {
+            top: 10px;
+            left: 10px;
+        }
+        #weapon-panel {
+            bottom: 10px;
+            left: 10px;
+        }
+        #room-panel {
+            top: 10px;
+            right: 10px;
+        }
+        .health-bar {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .health-icon {
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+        }
+        .health-heart {
+            background: #ff4757;
+            clip-path: polygon(50% 0%, 100% 35%, 100% 70%, 50% 100%, 0% 70%, 0% 35%);
+        }
+        .armor-shield {
+            background: #3498db;
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+        }
+        .health-fill {
+            width: 150px;
+            height: 12px;
+            background: #2a2a4a;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .health-fill-inner {
+            height: 100%;
+            transition: width 0.2s ease;
+        }
+        .health-fill-inner.heart { background: #ff4757; }
+        .health-fill-inner.shield { background: #3498db; }
+        .weapon-slot {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+            padding: 5px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+        .weapon-slot.active {
+            background: rgba(74, 74, 106, 0.8);
+            border-left: 3px solid #ffd700;
+        }
+        .weapon-key {
+            width: 24px;
+            height: 24px;
+            background: #4a4a6a;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        .weapon-info {
+            display: flex;
+            flex-direction: column;
+        }
+        .weapon-name {
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+        .ammo-display {
+            font-size: 12px;
+            color: #aaa;
+        }
+        .ammo-display.reloading {
+            color: #ffd700;
+        }
+        #pause-menu, #game-over-menu, #victory-menu, #buff-selection {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: all;
+            z-index: 200;
+        }
+        .menu-title {
+            font-size: 48px;
+            color: #ffd700;
+            margin-bottom: 40px;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        }
+        .menu-button {
+            background: #4a4a6a;
+            color: #fff;
+            border: 2px solid #6a6a8a;
+            padding: 15px 40px;
+            font-size: 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.2s ease;
+            pointer-events: all;
+        }
+        .menu-button:hover {
+            background: #6a6a8a;
+            border-color: #ffd700;
+            transform: scale(1.05);
+        }
+        .buff-container {
+            display: flex;
+            gap: 20px;
+            margin-top: 30px;
+        }
+        .buff-card {
+            background: #2a2a4a;
+            border: 2px solid #4a4a6a;
+            border-radius: 12px;
+            padding: 20px;
+            width: 180px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            pointer-events: all;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .buff-card:hover {
+            border-color: #ffd700;
+            transform: translateY(-10px);
+            box-shadow: 0 10px 30px rgba(255, 215, 0, 0.2);
+        }
+        .buff-icon {
+            width: 60px;
+            height: 60px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+        }
+        .buff-name {
+            font-size: 16px;
+            font-weight: bold;
+            color: #ffd700;
+            margin-bottom: 8px;
+        }
+        .buff-desc {
+            font-size: 12px;
+            color: #aaa;
+            text-align: center;
+        }
+        .active-buffs {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .active-buff-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
+            border: 2px solid #ffd700;
+        }
+        #start-menu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #1a1a2e;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: all;
+            z-index: 300;
+        }
+        .game-subtitle {
+            font-size: 20px;
+            color: #8a8aaa;
+            margin-bottom: 50px;
+        }
+        .controls-info {
+            color: #6a6a8a;
+            font-size: 14px;
+            margin-top: 40px;
+            text-align: center;
+            line-height: 2;
+        }
+        .damage-number {
+            position: absolute;
+            color: #ff4757;
+            font-weight: bold;
+            font-size: 16px;
+            pointer-events: none;
+            z-index: 150;
+            animation: floatUp 1s ease-out forwards;
+        }
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-30px); }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="ui-layer">
+            <div id="health-panel" class="ui-panel">
+                <div class="health-bar">
+                    <div class="health-icon health-heart"></div>
+                    <div class="health-fill">
+                        <div id="health-bar" class="health-fill-inner heart" style="width: 100%"></div>
+                    </div>
+                    <span id="health-text" style="margin-left: 10px;">10/10</span>
+                </div>
+                <div class="health-bar">
+                    <div class="health-icon armor-shield"></div>
+                    <div class="health-fill">
+                        <div id="armor-bar" class="health-fill-inner shield" style="width: 100%"></div>
+                    </div>
+                    <span id="armor-text" style="margin-left: 10px;">3/3</span>
+                </div>
+            </div>
+            
+            <div id="weapon-panel" class="ui-panel">
+                <div id="weapon-1" class="weapon-slot active">
+                    <div class="weapon-key">1</div>
+                    <div class="weapon-info">
+                        <div class="weapon-name">手枪</div>
+                        <div class="ammo-display" id="ammo-1">∞</div>
+                    </div>
+                </div>
+                <div id="weapon-2" class="weapon-slot">
+                    <div class="weapon-key">2</div>
+                    <div class="weapon-info">
+                        <div class="weapon-name">空</div>
+                        <div class="ammo-display" id="ammo-2">-</div>
+                    </div>
+                </div>
+                <div id="weapon-3" class="weapon-slot">
+                    <div class="weapon-key">3</div>
+                    <div class="weapon-info">
+                        <div class="weapon-name">空</div>
+                        <div class="ammo-display" id="ammo-3">-</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="room-panel" class="ui-panel">
+                <div style="margin-bottom: 5px;">房间: <span id="room-count">1</span>/10</div>
+                <div>已击杀: <span id="kill-count">0</span></div>
+                <div class="active-buffs" id="active-buffs"></div>
+            </div>
+        </div>
+        
+        <div id="start-menu">
+            <h1 class="menu-title">元气骑士</h1>
+            <p class="game-subtitle">像素射击冒险</p>
+            <button class="menu-button" onclick="startGame()">开始游戏</button>
+            <div class="controls-info">
+                <p>WASD - 移动</p>
+                <p>鼠标移动 - 瞄准 | 鼠标左键 - 射击</p>
+                <p>空格 - 翻滚闪避 | R - 换弹</p>
+                <p>1/2/3 - 切换武器 | ESC - 暂停</p>
+            </div>
+        </div>
+        
+        <div id="pause-menu">
+            <h1 class="menu-title">游戏暂停</h1>
+            <button class="menu-button" onclick="resumeGame()">继续游戏</button>
+            <button class="menu-button" onclick="restartGame()">重新开始</button>
+        </div>
+        
+        <div id="game-over-menu">
+            <h1 class="menu-title" style="color: #ff4757;">游戏结束</h1>
+            <p class="game-subtitle">你被击败了...</p>
+            <button class="menu-button" onclick="restartGame()">重新开始</button>
+        </div>
+        
+        <div id="victory-menu">
+            <h1 class="menu-title" style="color: #2ecc71;">胜利！</h1>
+            <p class="game-subtitle">恭喜你通关了！</p>
+            <button class="menu-button" onclick="restartGame()">再来一次</button>
+        </div>
+        
+        <div id="buff-selection">
+            <h1 class="menu-title" style="font-size: 36px;">选择天赋</h1>
+            <div class="buff-container" id="buff-container"></div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+    <script>
+        const CONFIG = {
+            width: 1200,
+            height: 700,
+            tileSize: 40,
+            playerSpeed: 200,
+            dashSpeed: 500,
+            dashDuration: 200,
+            dashCooldown: 1000,
+            invincibilityFrames: 300,
+            maxRooms: 10,
+            bossRoom: 10
+        };
+
+        const WEAPONS = {
+            pistol: {
+                name: '手枪',
+                damage: 1,
+                fireRate: 300,
+                magazineSize: Infinity,
+                reloadTime: 0,
+                bulletSpeed: 600,
+                bulletCount: 1,
+                spread: 0,
+                color: 0xffff00,
+                infinite: true
+            },
+            shotgun: {
+                name: '霰弹枪',
+                damage: 2,
+                fireRate: 800,
+                magazineSize: 6,
+                reloadTime: 1500,
+                bulletSpeed: 500,
+                bulletCount: 5,
+                spread: 30,
+                color: 0xff6b6b,
+                totalAmmo: 60
+            },
+            assaultRifle: {
+                name: '突击步枪',
+                damage: 1,
+                fireRate: 120,
+                magazineSize: 30,
+                reloadTime: 1200,
+                bulletSpeed: 700,
+                bulletCount: 1,
+                spread: 5,
+                color: 0x4ecdc4,
+                totalAmmo: 180
+            }
+        };
+
+        const BUFFS = [
+            { id: 'damage', name: '伤害提升', desc: '所有武器伤害+25%', icon: '🔴', color: 0xff6b6b },
+            { id: 'fireRate', name: '射速提升', desc: '射击间隔减少20%', icon: '⚡', color: 0xffd93d },
+            { id: 'health', name: '血量上限', desc: '最大生命值+3', icon: '❤️', color: 0xff4757 },
+            { id: 'dashCooldown', name: '翻滚冷却', desc: '翻滚冷却时间减少30%', icon: '💨', color: 0x74b9ff },
+            { id: 'armor', name: '护甲强化', desc: '最大护甲+2', icon: '🛡️', color: 0x0984e3 },
+            { id: 'speed', name: '移动速度', desc: '移动速度提升15%', icon: '🏃', color: 0x00b894 }
+        ];
+
+        let gameInstance = null;
+        let gameScene = null;
+
+        class GameScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'GameScene' });
+                this.gameState = 'start';
+                this.player = null;
+                this.walls = null;
+                this.enemies = null;
+                this.playerBullets = null;
+                this.enemyBullets = null;
+                this.items = null;
+                this.particles = null;
+                
+                this.currentRoom = 1;
+                this.killCount = 0;
+                this.roomCleared = false;
+                this.activeBuffs = [];
+                
+                this.weapons = [
+                    { ...WEAPONS.pistol, key: 'pistol', currentAmmo: Infinity, totalAmmo: Infinity, isReloading: false },
+                    null,
+                    null
+                ];
+                this.currentWeaponIndex = 0;
+                this.lastFireTime = 0;
+                
+                this.keys = {};
+                this.mouse = { x: 0, y: 0, down: false };
+                
+                this.isDashing = false;
+                this.dashCooldownTimer = 0;
+                this.dashDirection = { x: 0, y: 0 };
+                this.isInvincible = false;
+                this.invincibilityTimer = 0;
+                
+                this.playerStats = {
+                    maxHealth: 10,
+                    health: 10,
+                    maxArmor: 3,
+                    armor: 3,
+                    speed: CONFIG.playerSpeed,
+                    damageMultiplier: 1,
+                    fireRateMultiplier: 1,
+                    dashCooldownMultiplier: 1
+                };
+            }
+
+            preload() {
+                this.load.image('pixel', 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==');
+            }
+
+            create() {
+                gameScene = this;
+                
+                this.cameras.main.setBackgroundColor(0x1a1a2e);
+                
+                this.walls = this.physics.add.staticGroup();
+                this.enemies = this.physics.add.group();
+                this.playerBullets = this.physics.add.group();
+                this.enemyBullets = this.physics.add.group();
+                this.items = this.physics.add.group();
+                
+                this.particles = this.add.particles('pixel');
+                
+                this.createPlayer();
+                this.createRoom();
+                this.setupControls();
+                this.setupCollisions();
+                
+                this.updateUI();
+            }
+
+            createPlayer() {
+                this.player = this.add.graphics();
+                this.player.fillStyle(0x6c5ce7, 1);
+                this.player.fillRect(-15, -15, 30, 30);
+                this.player.fillStyle(0x5f4fcc, 1);
+                this.player.fillRect(-12, -12, 8, 8);
+                this.player.fillRect(4, -12, 8, 8);
+                
+                this.playerContainer = this.physics.add.sprite(CONFIG.width / 2, CONFIG.height / 2, 'pixel');
+                this.playerContainer.setDisplaySize(30, 30);
+                this.playerContainer.setCollideWorldBounds(true);
+                this.playerContainer.setDepth(10);
+                this.playerContainer.body.setSize(25, 25);
+                
+                this.player.setPosition(this.playerContainer.x, this.playerContainer.y);
+                this.player.setDepth(10);
+            }
+
+            createRoom() {
+                this.roomCleared = false;
+                this.enemies.clear(true, true);
+                this.items.clear(true, true);
+                this.walls.clear(true, true);
+                
+                const wallThickness = 40;
+                
+                for (let x = 0; x < CONFIG.width; x += wallThickness) {
+                    this.createWall(x, 0, wallThickness, wallThickness);
+                    this.createWall(x, CONFIG.height - wallThickness, wallThickness, wallThickness);
+                }
+                
+                for (let y = wallThickness; y < CONFIG.height - wallThickness; y += wallThickness) {
+                    this.createWall(0, y, wallThickness, wallThickness);
+                    this.createWall(CONFIG.width - wallThickness, y, wallThickness, wallThickness);
+                }
+                
+                const obstacleCount = Phaser.Math.Between(3, 6);
+                for (let i = 0; i < obstacleCount; i++) {
+                    const x = Phaser.Math.Between(120, CONFIG.width - 160);
+                    const y = Phaser.Math.Between(120, CONFIG.height - 160);
+                    const width = Phaser.Math.Between(1, 3) * wallThickness;
+                    const height = Phaser.Math.Between(1, 2) * wallThickness;
+                    this.createWall(x, y, width, height);
+                }
+                
+                if (this.currentRoom === CONFIG.bossRoom) {
+                    this.spawnBoss();
+                } else {
+                    this.spawnEnemies();
+                }
+            }
+
+            createWall(x, y, width, height) {
+                const wall = this.add.graphics();
+                wall.fillStyle(0x4a4a6a, 1);
+                wall.fillRect(0, 0, width, height);
+                wall.fillStyle(0x5a5a7a, 1);
+                wall.fillRect(2, 2, width - 4, 4);
+                wall.fillRect(2, 2, 4, height - 4);
+                wall.fillStyle(0x3a3a5a, 1);
+                wall.fillRect(width - 4, 4, 2, height - 6);
+                wall.fillRect(4, height - 4, width - 6, 2);
+                
+                const wallSprite = this.physics.add.staticSprite(x, y, 'pixel');
+                wallSprite.setDisplaySize(width, height);
+                wallSprite.setOrigin(0, 0);
+                wallSprite.body.updateFromGameObject();
+                this.walls.add(wallSprite);
+                
+                wall.setPosition(x, y);
+                wall.setDepth(5);
+            }
+
+            spawnEnemies() {
+                const enemyCount = Phaser.Math.Between(3, 5 + Math.floor(this.currentRoom / 3));
+                
+                for (let i = 0; i < enemyCount; i++) {
+                    const isRanged = Math.random() > 0.5;
+                    const x = Phaser.Math.Between(100, CONFIG.width - 100);
+                    const y = Phaser.Math.Between(100, CONFIG.height - 100);
+                    
+                    if (Phaser.Math.Distance.Between(x, y, this.playerContainer.x, this.playerContainer.y) < 200) {
+                        continue;
+                    }
+                    
+                    this.spawnEnemy(x, y, isRanged ? 'ranged' : 'melee');
+                }
+            }
+
+            spawnEnemy(x, y, type) {
+                const graphics = this.add.graphics();
+                
+                if (type === 'melee') {
+                    graphics.fillStyle(0x2ecc71, 1);
+                    graphics.fillEllipse(0, 0, 20, 16);
+                    graphics.fillStyle(0x27ae60, 1);
+                    graphics.fillEllipse(-5, -2, 4, 4);
+                    graphics.fillEllipse(5, -2, 4, 4);
+                } else {
+                    graphics.fillStyle(0xe74c3c, 1);
+                    graphics.fillRect(-12, -12, 24, 24);
+                    graphics.fillStyle(0xc0392b, 1);
+                    graphics.fillRect(-8, -8, 6, 6);
+                    graphics.fillRect(2, -8, 6, 6);
+                    graphics.fillStyle(0x7f8c8d, 1);
+                    graphics.fillRect(12, -3, 15, 6);
+                }
+                
+                const enemy = this.physics.add.sprite(x, y, 'pixel');
+                enemy.setDisplaySize(type === 'melee' ? 40 : 30, type === 'melee' ? 32 : 30);
+                enemy.setDepth(8);
+                enemy.body.setSize(type === 'melee' ? 35 : 25, type === 'melee' ? 28 : 25);
+                
+                graphics.setPosition(x, y);
+                graphics.setDepth(8);
+                
+                enemy.graphics = graphics;
+                enemy.type = type;
+                enemy.health = type === 'melee' ? 3 + Math.floor(this.currentRoom / 2) : 4 + Math.floor(this.currentRoom / 2);
+                enemy.maxHealth = enemy.health;
+                enemy.damage = type === 'melee' ? 2 : 1;
+                enemy.speed = type === 'melee' ? 120 : 80;
+                enemy.attackCooldown = 0;
+                enemy.attackRate = type === 'melee' ? 1000 : 1500;
+                enemy.isAttacking = false;
+                enemy.activated = false;
+                enemy.visionRange = 300;
+                
+                this.enemies.add(enemy);
+            }
+
+            spawnBoss() {
+                const graphics = this.add.graphics();
+                graphics.fillStyle(0x9b59b6, 1);
+                graphics.fillRect(-40, -40, 80, 80);
+                graphics.fillStyle(0x8e44ad, 1);
+                graphics.fillRect(-35, -35, 70, 70);
+                graphics.fillStyle(0xe74c3c, 1);
+                graphics.fillRect(-25, -15, 12, 12);
+                graphics.fillRect(13, -15, 12, 12);
+                graphics.fillStyle(0xf1c40f, 1);
+                graphics.fillRect(-10, 10, 20, 8);
+                
+                const boss = this.physics.add.sprite(CONFIG.width / 2, 150, 'pixel');
+                boss.setDisplaySize(80, 80);
+                boss.setDepth(8);
+                boss.body.setSize(70, 70);
+                
+                graphics.setPosition(boss.x, boss.y);
+                graphics.setDepth(8);
+                
+                boss.graphics = graphics;
+                boss.type = 'boss';
+                boss.health = 50;
+                boss.maxHealth = 50;
+                boss.damage = 2;
+                boss.speed = 60;
+                boss.attackCooldown = 0;
+                boss.attackRate = 1200;
+                boss.isAttacking = false;
+                boss.activated = true;
+                boss.phase = 1;
+                boss.visionRange = 800;
+                
+                this.enemies.add(boss);
+            }
+
+            setupControls() {
+                this.keys.w = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
+                this.keys.a = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
+                this.keys.s = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
+                this.keys.d = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
+                this.keys.r = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
+                this.keys.space = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+                this.keys.esc = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+                this.keys.one = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ONE);
+                this.keys.two = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TWO);
+                this.keys.three = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.THREE);
+                
+                this.input.on('pointermove', (pointer) => {
+                    this.mouse.x = pointer.x;
+                    this.mouse.y = pointer.y;
+                });
+                
+                this.input.on('pointerdown', (pointer) => {
+                    if (pointer.leftButtonDown()) {
+                        this.mouse.down = true;
+                    }
+                });
+                
+                this.input.on('pointerup', (pointer) => {
+                    if (!pointer.leftButtonDown()) {
+                        this.mouse.down = false;
+                    }
+                });
+                
+                this.keys.space.on('down', () => {
+                    if (this.gameState === 'playing' && !this.isDashing && this.dashCooldownTimer <= 0) {
+                        this.startDash();
+                    }
+                });
+                
+                this.keys.r.on('down', () => {
+                    if (this.gameState === 'playing') {
+                        this.reloadCurrentWeapon();
+                    }
+                });
+                
+                this.keys.esc.on('down', () => {
+                    if (this.gameState === 'playing') {
+                        this.pauseGame();
+                    } else if (this.gameState === 'paused') {
+                        this.resumeGame();
+                    }
+                });
+                
+                this.keys.one.on('down', () => this.switchWeapon(0));
+                this.keys.two.on('down', () => this.switchWeapon(1));
+                this.keys.three.on('down', () => this.switchWeapon(2));
+            }
+
+            setupCollisions() {
+                this.physics.add.collider(this.playerContainer, this.walls);
+                this.physics.add.collider(this.enemies, this.walls);
+                this.physics.add.collider(this.enemies, this.enemies);
+                
+                this.physics.add.overlap(this.playerBullets, this.enemies, this.bulletHitEnemy, null, this);
+                this.physics.add.overlap(this.playerBullets, this.walls, this.bulletHitWall, null, this);
+                
+                this.physics.add.overlap(this.enemyBullets, this.playerContainer, this.bulletHitPlayer, null, this);
+                this.physics.add.overlap(this.enemyBullets, this.walls, this.bulletHitWall, null, this);
+                
+                this.physics.add.overlap(this.playerContainer, this.items, this.collectItem, null, this);
+                
+                this.physics.add.overlap(this.playerContainer, this.enemies, this.playerEnemyCollision, null, this);
+            }
+
+            bulletHitEnemy(bullet, enemy) {
+                if (!bullet.active || !enemy.active) return;
+                
+                const damage = bullet.damage * this.playerStats.damageMultiplier;
+                enemy.health -= damage;
+                
+                this.showDamageNumber(enemy.x, enemy.y - 20, Math.floor(damage));
+                
+                this.createHitParticles(bullet.x, bullet.y, bullet.color);
+                
+                bullet.destroy();
+                
+                if (enemy.health <= 0) {
+                    this.killEnemy(enemy);
+                }
+            }
+
+            bulletHitWall(bullet, wall) {
+                if (bullet.active) {
+                    this.createHitParticles(bullet.x, bullet.y, bullet.color);
+                    bullet.destroy();
+                }
+            }
+
+            bulletHitPlayer(player, bullet) {
+                if (!bullet.active || this.isInvincible) return;
+                
+                this.takeDamage(bullet.damage);
+                bullet.destroy();
+            }
+
+            playerEnemyCollision(player, enemy) {
+                if (this.isInvincible || !enemy.active) return;
+                
+                if (enemy.type === 'melee' && !enemy.isAttacking) {
+                    this.takeDamage(enemy.damage);
+                    enemy.isAttacking = true;
+                    this.time.delayedCall(500, () => { enemy.isAttacking = false; });
+                }
+            }
+
+            takeDamage(amount) {
+                if (this.playerStats.armor > 0) {
+                    const armorDamage = Math.min(this.playerStats.armor, amount);
+                    this.playerStats.armor -= armorDamage;
+                    amount -= armorDamage;
+                }
+                
+                if (amount > 0) {
+                    this.playerStats.health -= amount;
+                }
+                
+                this.isInvincible = true;
+                this.invincibilityTimer = CONFIG.invincibilityFrames;
+                
+                this.cameras.main.shake(100, 0.01);
+                this.player.setAlpha(0.5);
+                
+                this.updateUI();
+                
+                if (this.playerStats.health <= 0) {
+                    this.gameOver();
+                }
+            }
+
+            killEnemy(enemy) {
+                this.createDeathParticles(enemy.x, enemy.y, enemy.type === 'boss' ? 0x9b59b6 : (enemy.type === 'melee' ? 0x2ecc71 : 0xe74c3c));
+                
+                enemy.graphics.destroy();
+                enemy.destroy();
+                this.killCount++;
+                
+                if (Math.random() < 0.3 || (enemy.type === 'boss')) {
+                    this.spawnWeaponDrop(enemy.x, enemy.y);
+                }
+                
+                this.updateUI();
+                
+                this.enemies.getChildren().forEach(e => {
+                    if (e.active && e.type === 'boss' && e.phase === 1 && e.health <= e.maxHealth / 2) {
+                        e.phase = 2;
+                        e.attackRate = 800;
+                        e.speed = 90;
+                        const flash = this.add.graphics();
+                        flash.fillStyle(0xffffff, 0.8);
+                        flash.fillRect(e.x - 50, e.y - 50, 100, 100);
+                        this.time.delayedCall(200, () => flash.destroy());
+                    }
+                });
+                
+                if (this.enemies.countActive(true) === 0) {
+                    this.roomCleared = true;
+                    this.showBuffSelection();
+                }
+            }
+
+            spawnWeaponDrop(x, y) {
+                const availableWeapons = [];
+                if (!this.weapons[1] || !this.weapons[2]) {
+                    availableWeapons.push('shotgun', 'assaultRifle');
+                }
+                
+                if (availableWeapons.length === 0) return;
+                
+                const weaponKey = Phaser.Utils.Array.GetRandom(availableWeapons);
+                const weaponData = WEAPONS[weaponKey];
+                
+                const graphics = this.add.graphics();
+                graphics.fillStyle(weaponData.color, 1);
+                graphics.fillRect(-15, -8, 30, 16);
+                graphics.fillStyle(0x333333, 1);
+                graphics.fillRect(-12, -5, 8, 10);
+                
+                const item = this.physics.add.sprite(x, y, 'pixel');
+                item.setDisplaySize(30, 16);
+                item.setDepth(6);
+                
+                graphics.setPosition(x, y);
+                graphics.setDepth(6);
+                
+                item.graphics = graphics;
+                item.type = 'weapon';
+                item.weaponKey = weaponKey;
+                item.floatTween = this.tweens.add({
+                    targets: [item, graphics],
+                    y: y - 10,
+                    duration: 800,
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut'
+                });
+                
+                this.items.add(item);
+            }
+
+            collectItem(player, item) {
+                if (!item.active) return;
+                
+                if (item.type === 'weapon') {
+                    const emptySlot = this.weapons.findIndex((w, i) => w === null && i > 0);
+                    
+                    if (emptySlot !== -1) {
+                        const weaponData = WEAPONS[item.weaponKey];
+                        this.weapons[emptySlot] = {
+                            ...weaponData,
+                            key: item.weaponKey,
+                            currentAmmo: weaponData.magazineSize,
+                            totalAmmo: weaponData.totalAmmo,
+                            isReloading: false
+                        };
+                    } else {
+                        const currentWeapon = this.weapons[this.currentWeaponIndex];
+                        if (currentWeapon && currentWeapon.key === item.weaponKey) {
+                            const weaponData = WEAPONS[item.weaponKey];
+                            currentWeapon.totalAmmo += weaponData.totalAmmo;
+                        }
+                    }
+                    
+                    this.updateUI();
+                }
+                
+                item.floatTween.stop();
+                item.graphics.destroy();
+                item.destroy();
+            }
+
+            createHitParticles(x, y, color) {
+                this.particles.createEmitter({
+                    x: x,
+                    y: y,
+                    speed: { min: 50, max: 150 },
+                    angle: { min: 0, max: 360 },
+                    scale: { start: 0.3, end: 0 },
+                    lifespan: 300,
+                    quantity: 5,
+                    tint: color,
+                    on: false
+                }).explode();
+            }
+
+            createDeathParticles(x, y, color) {
+                this.particles.createEmitter({
+                    x: x,
+                    y: y,
+                    speed: { min: 100, max: 250 },
+                    angle: { min: 0, max: 360 },
+                    scale: { start: 0.5, end: 0 },
+                    lifespan: 500,
+                    quantity: 15,
+                    tint: color,
+                    on: false
+                }).explode();
+            }
+
+            showDamageNumber(x, y, damage) {
+                const text = this.add.text(x, y, '-' + damage, {
+                    fontFamily: 'Arial',
+                    fontSize: '16px',
+                    color: '#ff4757',
+                    fontStyle: 'bold'
+                });
+                text.setOrigin(0.5);
+                text.setDepth(100);
+                
+                this.tweens.add({
+                    targets: text,
+                    y: y - 30,
+                    alpha: 0,
+                    duration: 1000,
+                    ease: 'Cubic.easeOut',
+                    onComplete: () => text.destroy()
+                });
+            }
+
+            startDash() {
+                this.isDashing = true;
+                this.isInvincible = true;
+                
+                let dx = 0, dy = 0;
+                if (this.keys.w.isDown) dy -= 1;
+                if (this.keys.s.isDown) dy += 1;
+                if (this.keys.a.isDown) dx -= 1;
+                if (this.keys.d.isDown) dx += 1;
+                
+                if (dx === 0 && dy === 0) {
+                    const angle = Phaser.Math.Angle.Between(
+                        this.playerContainer.x, this.playerContainer.y,
+                        this.mouse.x, this.mouse.y
+                    );
+                    dx = Math.cos(angle);
+                    dy = Math.sin(angle);
+                } else {
+                    const length = Math.sqrt(dx * dx + dy * dy);
+                    dx /= length;
+                    dy /= length;
+                }
+                
+                this.dashDirection = { x: dx, y: dy };
+                
+                this.player.setAlpha(0.3);
+                
+                this.time.delayedCall(CONFIG.dashDuration, () => {
+                    this.isDashing = false;
+                    this.dashCooldownTimer = CONFIG.dashCooldown * this.playerStats.dashCooldownMultiplier;
+                    this.time.delayedCall(100, () => {
+                        if (!this.isInvincible || this.invincibilityTimer <= 100) {
+                            this.isInvincible = false;
+                            this.player.setAlpha(1);
+                        }
+                    });
+                });
+            }
+
+            reloadCurrentWeapon() {
+                const weapon = this.weapons[this.currentWeaponIndex];
+                if (!weapon || weapon.infinite || weapon.isReloading) return;
+                
+                if (weapon.currentAmmo === weapon.magazineSize) return;
+                if (weapon.totalAmmo <= 0) return;
+                
+                weapon.isReloading = true;
+                this.updateUI();
+                
+                this.time.delayedCall(weapon.reloadTime, () => {
+                    const ammoNeeded = weapon.magazineSize - weapon.currentAmmo;
+                    const ammoToAdd = Math.min(ammoNeeded, weapon.totalAmmo);
+                    weapon.currentAmmo += ammoToAdd;
+                    weapon.totalAmmo -= ammoToAdd;
+                    weapon.isReloading = false;
+                    this.updateUI();
+                });
+            }
+
+            switchWeapon(index) {
+                if (index < 0 || index > 2) return;
+                if (!this.weapons[index]) return;
+                if (index === this.currentWeaponIndex) return;
+                
+                const currentWeapon = this.weapons[this.currentWeaponIndex];
+                if (currentWeapon && currentWeapon.isReloading) {
+                    currentWeapon.isReloading = false;
+                }
+                
+                this.currentWeaponIndex = index;
+                this.updateUI();
+            }
+
+            fireWeapon() {
+                const weapon = this.weapons[this.currentWeaponIndex];
+                if (!weapon) return;
+                
+                const now = this.time.now;
+                const adjustedFireRate = weapon.fireRate * this.playerStats.fireRateMultiplier;
+                
+                if (now - this.lastFireTime < adjustedFireRate) return;
+                
+                if (weapon.isReloading) return;
+                
+                if (!weapon.infinite) {
+                    if (weapon.currentAmmo <= 0) {
+                        if (weapon.totalAmmo > 0) {
+                            this.reloadCurrentWeapon();
+                        }
+                        return;
+                    }
+                    weapon.currentAmmo--;
+                    this.updateUI();
+                    
+                    if (weapon.currentAmmo <= 0 && weapon.totalAmmo > 0) {
+                        this.reloadCurrentWeapon();
+                    }
+                }
+                
+                this.lastFireTime = now;
+                
+                const angle = Phaser.Math.Angle.Between(
+                    this.playerContainer.x, this.playerContainer.y,
+                    this.mouse.x, this.mouse.y
+                );
+                
+                for (let i = 0; i < weapon.bulletCount; i++) {
+                    const spreadAngle = angle + Phaser.Math.DegToRad(
+                        Phaser.Math.FloatBetween(-weapon.spread / 2, weapon.spread / 2)
+                    );
+                    
+                    const bullet = this.createBullet(
+                        this.playerContainer.x,
+                        this.playerContainer.y,
+                        spreadAngle,
+                        weapon.bulletSpeed,
+                        weapon.damage,
+                        weapon.color,
+                        true
+                    );
+                    
+                    this.playerBullets.add(bullet);
+                }
+            }
+
+            createBullet(x, y, angle, speed, damage, color, isPlayer) {
+                const graphics = this.add.graphics();
+                graphics.fillStyle(color, 1);
+                graphics.fillRect(-4, -4, 8, 8);
+                
+                const bullet = this.physics.add.sprite(x, y, 'pixel');
+                bullet.setDisplaySize(8, 8);
+                bullet.setDepth(isPlayer ? 12 : 9);
+                bullet.body.setSize(6, 6);
+                
+                graphics.setPosition(x, y);
+                graphics.setDepth(bullet.depth);
+                
+                bullet.graphics = graphics;
+                bullet.damage = damage;
+                bullet.color = color;
+                bullet.isPlayer = isPlayer;
+                bullet.angle = angle;
+                bullet.speed = speed;
+                
+                bullet.body.velocity.x = Math.cos(angle) * speed;
+                bullet.body.velocity.y = Math.sin(angle) * speed;
+                
+                return bullet;
+            }
+
+            updateEnemies(time, delta) {
+                this.enemies.getChildren().forEach(enemy => {
+                    if (!enemy.active) return;
+                    
+                    const distance = Phaser.Math.Distance.Between(
+                        enemy.x, enemy.y,
+                        this.playerContainer.x, this.playerContainer.y
+                    );
+                    
+                    if (!enemy.activated && distance < enemy.visionRange) {
+                        enemy.activated = true;
+                    }
+                    
+                    if (!enemy.activated) return;
+                    
+                    if (enemy.attackCooldown > 0) {
+                        enemy.attackCooldown -= delta;
+                    }
+                    
+                    const angle = Phaser.Math.Angle.Between(
+                        enemy.x, enemy.y,
+                        this.playerContainer.x, this.playerContainer.y
+                    );
+                    
+                    if (enemy.type === 'melee') {
+                        if (distance > 50) {
+                            enemy.body.velocity.x = Math.cos(angle) * enemy.speed;
+                            enemy.body.velocity.y = Math.sin(angle) * enemy.speed;
+                        } else {
+                            enemy.body.velocity.set(0, 0);
+                        }
+                    } else if (enemy.type === 'ranged') {
+                        if (distance < 150) {
+                            enemy.body.velocity.x = -Math.cos(angle) * enemy.speed * 0.5;
+                            enemy.body.velocity.y = -Math.sin(angle) * enemy.speed * 0.5;
+                        } else if (distance > 250) {
+                            enemy.body.velocity.x = Math.cos(angle) * enemy.speed;
+                            enemy.body.velocity.y = Math.sin(angle) * enemy.speed;
+                        } else {
+                            enemy.body.velocity.set(0, 0);
+                        }
+                        
+                        if (enemy.attackCooldown <= 0 && distance < 400) {
+                            this.enemyShoot(enemy, angle);
+                            enemy.attackCooldown = enemy.attackRate;
+                        }
+                    } else if (enemy.type === 'boss') {
+                        const moveDirection = Math.sin(time / 1000);
+                        enemy.body.velocity.x = moveDirection * enemy.speed;
+                        
+                        if (enemy.attackCooldown <= 0) {
+                            this.bossShoot(enemy, angle, enemy.phase);
+                            enemy.attackCooldown = enemy.attackRate;
+                        }
+                    }
+                    
+                    if (enemy.graphics) {
+                        enemy.graphics.setPosition(enemy.x, enemy.y);
+                    }
+                });
+            }
+
+            enemyShoot(enemy, angle) {
+                const bullet = this.createBullet(
+                    enemy.x, enemy.y,
+                    angle,
+                    300,
+                    enemy.damage,
+                    0xff6b6b,
+                    false
+                );
+                this.enemyBullets.add(bullet);
+            }
+
+            bossShoot(enemy, angle, phase) {
+                if (phase === 1) {
+                    for (let i = -2; i <= 2; i++) {
+                        const bulletAngle = angle + Phaser.Math.DegToRad(i * 15);
+                        const bullet = this.createBullet(
+                            enemy.x, enemy.y,
+                            bulletAngle,
+                            250,
+                            enemy.damage,
+                            0xff6b6b,
+                            false
+                        );
+                        this.enemyBullets.add(bullet);
+                    }
+                } else {
+                    for (let i = 0; i < 12; i++) {
+                        const bulletAngle = Phaser.Math.DegToRad(i * 30);
+                        const bullet = this.createBullet(
+                            enemy.x, enemy.y,
+                            bulletAngle,
+                            200,
+                            enemy.damage,
+                            0x9b59b6,
+                            false
+                        );
+                        this.enemyBullets.add(bullet);
+                    }
+                }
+            }
+
+            showBuffSelection() {
+                this.gameState = 'selectingBuff';
+                
+                const shuffledBuffs = Phaser.Utils.Array.Shuffle([...BUFFS]);
+                const selectedBuffs = shuffledBuffs.slice(0, 3);
+                
+                const container = document.getElementById('buff-container');
+                container.innerHTML = '';
+                
+                selectedBuffs.forEach((buff, index) => {
+                    const card = document.createElement('div');
+                    card.className = 'buff-card';
+                    card.innerHTML = `
+                        <div class="buff-icon" style="background: #${buff.color.toString(16).padStart(6, '0')}; display: flex; align-items: center; justify-content: center; font-size: 32px;">
+                            ${buff.icon}
+                        </div>
+                        <div class="buff-name">${buff.name}</div>
+                        <div class="buff-desc">${buff.desc}</div>
+                    `;
+                    card.onclick = () => this.selectBuff(buff);
+                    container.appendChild(card);
+                });
+                
+                document.getElementById('buff-selection').style.display = 'flex';
+            }
+
+            selectBuff(buff) {
+                this.activeBuffs.push(buff);
+                
+                switch (buff.id) {
+                    case 'damage':
+                        this.playerStats.damageMultiplier += 0.25;
+                        break;
+                    case 'fireRate':
+                        this.playerStats.fireRateMultiplier *= 0.8;
+                        break;
+                    case 'health':
+                        this.playerStats.maxHealth += 3;
+                        this.playerStats.health += 3;
+                        break;
+                    case 'dashCooldown':
+                        this.playerStats.dashCooldownMultiplier *= 0.7;
+                        break;
+                    case 'armor':
+                        this.playerStats.maxArmor += 2;
+                        this.playerStats.armor += 2;
+                        break;
+                    case 'speed':
+                        this.playerStats.speed *= 1.15;
+                        break;
+                }
+                
+                document.getElementById('buff-selection').style.display = 'none';
+                this.updateUI();
+                this.nextRoom();
+            }
+
+            nextRoom() {
+                this.currentRoom++;
+                
+                if (this.currentRoom > CONFIG.maxRooms) {
+                    this.victory();
+                    return;
+                }
+                
+                this.playerContainer.setPosition(CONFIG.width / 2, CONFIG.height - 100);
+                this.player.setPosition(this.playerContainer.x, this.playerContainer.y);
+                
+                this.createRoom();
+                this.gameState = 'playing';
+                this.updateUI();
+            }
+
+            updateBullets() {
+                this.playerBullets.getChildren().forEach(bullet => {
+                    if (bullet.active && bullet.graphics) {
+                        bullet.graphics.setPosition(bullet.x, bullet.y);
+                    }
+                });
+                
+                this.enemyBullets.getChildren().forEach(bullet => {
+                    if (bullet.active && bullet.graphics) {
+                        bullet.graphics.setPosition(bullet.x, bullet.y);
+                    }
+                });
+            }
+
+            update(time, delta) {
+                if (this.gameState !== 'playing') return;
+                
+                if (this.dashCooldownTimer > 0) {
+                    this.dashCooldownTimer -= delta;
+                }
+                
+                if (this.isInvincible && !this.isDashing) {
+                    this.invincibilityTimer -= delta;
+                    if (this.invincibilityTimer <= 0) {
+                        this.isInvincible = false;
+                        this.player.setAlpha(1);
+                    }
+                }
+                
+                let moveX = 0, moveY = 0;
+                
+                if (!this.isDashing) {
+                    if (this.keys.w.isDown) moveY -= 1;
+                    if (this.keys.s.isDown) moveY += 1;
+                    if (this.keys.a.isDown) moveX -= 1;
+                    if (this.keys.d.isDown) moveX += 1;
+                    
+                    if (moveX !== 0 && moveY !== 0) {
+                        const length = Math.sqrt(moveX * moveX + moveY * moveY);
+                        moveX /= length;
+                        moveY /= length;
+                    }
+                    
+                    this.playerContainer.body.velocity.x = moveX * this.playerStats.speed;
+                    this.playerContainer.body.velocity.y = moveY * this.playerStats.speed;
+                } else {
+                    this.playerContainer.body.velocity.x = this.dashDirection.x * CONFIG.dashSpeed;
+                    this.playerContainer.body.velocity.y = this.dashDirection.y * CONFIG.dashSpeed;
+                }
+                
+                this.player.setPosition(this.playerContainer.x, this.playerContainer.y);
+                
+                const angle = Phaser.Math.Angle.Between(
+                    this.playerContainer.x, this.playerContainer.y,
+                    this.mouse.x, this.mouse.y
+                );
+                this.player.setRotation(angle + Math.PI / 4);
+                
+                if (this.mouse.down) {
+                    this.fireWeapon();
+                }
+                
+                this.updateEnemies(time, delta);
+                this.updateBullets();
+                
+                this.items.getChildren().forEach(item => {
+                    if (item.active && item.graphics) {
+                        item.graphics.setPosition(item.x, item.y);
+                    }
+                });
+            }
+
+            updateUI() {
+                const healthPercent = (this.playerStats.health / this.playerStats.maxHealth) * 100;
+                const armorPercent = (this.playerStats.armor / this.playerStats.maxArmor) * 100;
+                
+                document.getElementById('health-bar').style.width = healthPercent + '%';
+                document.getElementById('health-text').textContent = 
+                    `${this.playerStats.health}/${this.playerStats.maxHealth}`;
+                
+                document.getElementById('armor-bar').style.width = armorPercent + '%';
+                document.getElementById('armor-text').textContent = 
+                    `${this.playerStats.armor}/${this.playerStats.maxArmor}`;
+                
+                document.getElementById('room-count').textContent = this.currentRoom;
+                document.getElementById('kill-count').textContent = this.killCount;
+                
+                for (let i = 0; i < 3; i++) {
+                    const weapon = this.weapons[i];
+                    const slot = document.getElementById(`weapon-${i + 1}`);
+                    const ammoDisplay = document.getElementById(`ammo-${i + 1}`);
+                    
+                    slot.classList.toggle('active', i === this.currentWeaponIndex);
+                    
+                    if (weapon) {
+                        slot.querySelector('.weapon-name').textContent = weapon.name;
+                        
+                        if (weapon.infinite) {
+                            ammoDisplay.textContent = '∞';
+                            ammoDisplay.classList.remove('reloading');
+                        } else {
+                            if (weapon.isReloading) {
+                                ammoDisplay.textContent = '换弹中...';
+                                ammoDisplay.classList.add('reloading');
+                            } else {
+                                ammoDisplay.textContent = 
+                                    `${weapon.currentAmmo}/${weapon.totalAmmo}`;
+                                ammoDisplay.classList.remove('reloading');
+                            }
+                        }
+                    } else {
+                        slot.querySelector('.weapon-name').textContent = '空';
+                        ammoDisplay.textContent = '-';
+                        ammoDisplay.classList.remove('reloading');
+                    }
+                }
+                
+                const buffsContainer = document.getElementById('active-buffs');
+                buffsContainer.innerHTML = '';
+                this.activeBuffs.forEach(buff => {
+                    const icon = document.createElement('div');
+                    icon.className = 'active-buff-icon';
+                    icon.style.background = `#${buff.color.toString(16).padStart(6, '0')}`;
+                    icon.style.display = 'flex';
+                    icon.style.alignItems = 'center';
+                    icon.style.justifyContent = 'center';
+                    icon.style.fontSize = '16px';
+                    icon.textContent = buff.icon;
+                    buffsContainer.appendChild(icon);
+                });
+            }
+
+            pauseGame() {
+                this.gameState = 'paused';
+                this.physics.world.pause();
+                document.getElementById('pause-menu').style.display = 'flex';
+            }
+
+            resumeGame() {
+                this.gameState = 'playing';
+                this.physics.world.resume();
+                document.getElementById('pause-menu').style.display = 'none';
+            }
+
+            gameOver() {
+                this.gameState = 'gameOver';
+                this.physics.world.pause();
+                document.getElementById('game-over-menu').style.display = 'flex';
+            }
+
+            victory() {
+                this.gameState = 'victory';
+                this.physics.world.pause();
+                document.getElementById('victory-menu').style.display = 'flex';
+            }
+        }
+
+        const gameConfig = {
+            type: Phaser.AUTO,
+            width: CONFIG.width,
+            height: CONFIG.height,
+            parent: 'game-container',
+            physics: {
+                default: 'arcade',
+                arcade: {
+                    gravity: { y: 0 },
+                    debug: false
+                }
+            },
+            scene: [GameScene],
+            pixelArt: true
+        };
+
+        function startGame() {
+            document.getElementById('start-menu').style.display = 'none';
+            
+            if (gameInstance) {
+                gameInstance.destroy(true);
+            }
+            
+            gameInstance = new Phaser.Game(gameConfig);
+        }
+
+        function resumeGame() {
+            if (gameScene) {
+                gameScene.resumeGame();
+            }
+        }
+
+        function restartGame() {
+            document.getElementById('pause-menu').style.display = 'none';
+            document.getElementById('game-over-menu').style.display = 'none';
+            document.getElementById('victory-menu').style.display = 'none';
+            document.getElementById('buff-selection').style.display = 'none';
+            
+            if (gameInstance) {
+                gameInstance.destroy(true);
+            }
+            
+            gameInstance = new Phaser.Game(gameConfig);
+        }
+    </script>
+</body>
+</html>
