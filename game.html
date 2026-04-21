@@ -563,8 +563,6 @@
                 this.enemyBullets = this.physics.add.group();
                 this.items = this.physics.add.group();
                 
-                this.particles = this.add.particles('pixel');
-                
                 this.pointer = this.input.activePointer;
                 
                 this.createPlayer();
@@ -654,17 +652,47 @@
 
             spawnEnemies() {
                 const enemyCount = Phaser.Math.Between(3, 5 + Math.floor(this.currentRoom / 3));
+                let spawnedCount = 0;
+                let attempts = 0;
+                const maxAttempts = 100;
                 
-                for (let i = 0; i < enemyCount; i++) {
+                while (spawnedCount < enemyCount && attempts < maxAttempts) {
+                    attempts++;
                     const isRanged = Math.random() > 0.5;
-                    const x = Phaser.Math.Between(100, CONFIG.width - 100);
-                    const y = Phaser.Math.Between(100, CONFIG.height - 100);
                     
-                    if (this.player && Phaser.Math.Distance.Between(x, y, this.player.x, this.player.y) < 200) {
+                    let x, y;
+                    if (attempts > 50) {
+                        const side = Phaser.Math.Between(0, 3);
+                        switch (side) {
+                            case 0:
+                                x = Phaser.Math.Between(100, CONFIG.width - 100);
+                                y = 100;
+                                break;
+                            case 1:
+                                x = Phaser.Math.Between(100, CONFIG.width - 100);
+                                y = CONFIG.height - 100;
+                                break;
+                            case 2:
+                                x = 100;
+                                y = Phaser.Math.Between(100, CONFIG.height - 100);
+                                break;
+                            case 3:
+                                x = CONFIG.width - 100;
+                                y = Phaser.Math.Between(100, CONFIG.height - 100);
+                                break;
+                        }
+                    } else {
+                        x = Phaser.Math.Between(100, CONFIG.width - 100);
+                        y = Phaser.Math.Between(100, CONFIG.height - 100);
+                    }
+                    
+                    const minDistance = attempts > 30 ? 100 : 200;
+                    if (this.player && Phaser.Math.Distance.Between(x, y, this.player.x, this.player.y) < minDistance) {
                         continue;
                     }
                     
                     this.spawnEnemy(x, y, isRanged ? 'ranged' : 'melee');
+                    spawnedCount++;
                 }
             }
 
@@ -956,31 +984,43 @@
             }
 
             createHitParticles(x, y, color) {
-                this.particles.createEmitter({
-                    x: x,
-                    y: y,
-                    speed: { min: 50, max: 150 },
-                    angle: { min: 0, max: 360 },
-                    scale: { start: 0.3, end: 0 },
-                    lifespan: 300,
-                    quantity: 5,
-                    tint: color,
-                    on: false
-                }).explode();
+                for (let i = 0; i < 5; i++) {
+                    const particle = this.add.rectangle(x, y, 4, 4, color);
+                    particle.setDepth(20);
+                    
+                    const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+                    const speed = Phaser.Math.FloatBetween(50, 150);
+                    
+                    this.tweens.add({
+                        targets: particle,
+                        x: x + Math.cos(angle) * speed * 0.3,
+                        y: y + Math.sin(angle) * speed * 0.3,
+                        alpha: 0,
+                        scale: 0.3,
+                        duration: 300,
+                        onComplete: () => particle.destroy()
+                    });
+                }
             }
 
             createDeathParticles(x, y, color) {
-                this.particles.createEmitter({
-                    x: x,
-                    y: y,
-                    speed: { min: 100, max: 250 },
-                    angle: { min: 0, max: 360 },
-                    scale: { start: 0.5, end: 0 },
-                    lifespan: 500,
-                    quantity: 15,
-                    tint: color,
-                    on: false
-                }).explode();
+                for (let i = 0; i < 15; i++) {
+                    const particle = this.add.rectangle(x, y, 6, 6, color);
+                    particle.setDepth(20);
+                    
+                    const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+                    const speed = Phaser.Math.FloatBetween(100, 250);
+                    
+                    this.tweens.add({
+                        targets: particle,
+                        x: x + Math.cos(angle) * speed * 0.5,
+                        y: y + Math.sin(angle) * speed * 0.5,
+                        alpha: 0,
+                        scale: 0.5,
+                        duration: 500,
+                        onComplete: () => particle.destroy()
+                    });
+                }
             }
 
             showDamageNumber(x, y, damage) {
