@@ -1088,7 +1088,6 @@
 
             startDash() {
                 this.isDashing = true;
-                this.isInvincible = true;
                 
                 let dx = 0, dy = 0;
                 if (this.keys.w.isDown) dy -= 1;
@@ -1099,7 +1098,7 @@
                 if (dx === 0 && dy === 0) {
                     const angle = Phaser.Math.Angle.Between(
                         this.player.x, this.player.y,
-                        this.input.mousePointer.worldX, this.input.mousePointer.worldY
+                        this.input.activePointer.worldX, this.input.activePointer.worldY
                     );
                     dx = Math.cos(angle);
                     dy = Math.sin(angle);
@@ -1111,17 +1110,12 @@
                 
                 this.dashDirection = { x: dx, y: dy };
                 
-                this.player.setAlpha(0.3);
+                this.player.setAlpha(0.5);
                 
                 this.time.delayedCall(CONFIG.dashDuration, () => {
                     this.isDashing = false;
                     this.dashCooldownTimer = CONFIG.dashCooldown * this.playerStats.dashCooldownMultiplier;
-                    this.time.delayedCall(100, () => {
-                        if (!this.isInvincible || this.invincibilityTimer <= 100) {
-                            this.isInvincible = false;
-                            this.player.setAlpha(1);
-                        }
-                    });
+                    this.player.setAlpha(1);
                 });
             }
 
@@ -1197,7 +1191,7 @@
                         Phaser.Math.FloatBetween(-weapon.spread / 2, weapon.spread / 2)
                     );
                     
-                    const bullet = this.createBullet(
+                    this.createBullet(
                         this.player.x,
                         this.player.y,
                         spreadAngle,
@@ -1206,8 +1200,6 @@
                         weapon.color,
                         true
                     );
-                    
-                    this.playerBullets.add(bullet);
                 }
             }
 
@@ -1229,6 +1221,12 @@
                 
                 bullet.damage = damage;
                 bullet.isPlayer = isPlayer;
+                
+                if (isPlayer) {
+                    this.playerBullets.add(bullet);
+                } else {
+                    this.enemyBullets.add(bullet);
+                }
                 
                 const velX = Math.cos(angle) * speed;
                 const velY = Math.sin(angle) * speed;
@@ -1305,7 +1303,7 @@
             }
 
             enemyShoot(enemy, angle) {
-                const bullet = this.createBullet(
+                this.createBullet(
                     enemy.x, enemy.y,
                     angle,
                     300,
@@ -1313,14 +1311,13 @@
                     0xff6b6b,
                     false
                 );
-                this.enemyBullets.add(bullet);
             }
 
             bossShoot(enemy, angle, phase) {
                 if (phase === 1) {
                     for (let i = -2; i <= 2; i++) {
                         const bulletAngle = angle + Phaser.Math.DegToRad(i * 15);
-                        const bullet = this.createBullet(
+                        this.createBullet(
                             enemy.x, enemy.y,
                             bulletAngle,
                             250,
@@ -1328,12 +1325,11 @@
                             0xff6b6b,
                             false
                         );
-                        this.enemyBullets.add(bullet);
                     }
                 } else {
                     for (let i = 0; i < 12; i++) {
                         const bulletAngle = Phaser.Math.DegToRad(i * 30);
-                        const bullet = this.createBullet(
+                        this.createBullet(
                             enemy.x, enemy.y,
                             bulletAngle,
                             200,
@@ -1341,7 +1337,6 @@
                             0x9b59b6,
                             false
                         );
-                        this.enemyBullets.add(bullet);
                     }
                 }
             }
@@ -1476,11 +1471,11 @@
                 
                 const angle = Phaser.Math.Angle.Between(
                     this.player.x, this.player.y,
-                    this.input.mousePointer.worldX, this.input.mousePointer.worldY
+                    this.input.activePointer.worldX, this.input.activePointer.worldY
                 );
                 this.player.setRotation(angle + Math.PI / 4);
                 
-                if (this.input.mousePointer.isDown) {
+                if (this.input.activePointer.isDown) {
                     this.fireWeapon();
                 }
                 
