@@ -527,7 +527,7 @@
                 
                 this.cursors = null;
                 this.keys = {};
-                this.pointer = null;
+
                 
                 this.isDashing = false;
                 this.dashCooldownTimer = 0;
@@ -563,7 +563,7 @@
                 this.enemyBullets = this.physics.add.group();
                 this.items = this.physics.add.group();
                 
-                this.pointer = this.input.activePointer;
+
                 
                 this.physics.world.setBounds(0, 0, CONFIG.width, CONFIG.height);
                 
@@ -1099,7 +1099,7 @@
                 if (dx === 0 && dy === 0) {
                     const angle = Phaser.Math.Angle.Between(
                         this.player.x, this.player.y,
-                        this.pointer.worldX, this.pointer.worldY
+                        this.input.mousePointer.worldX, this.input.mousePointer.worldY
                     );
                     dx = Math.cos(angle);
                     dy = Math.sin(angle);
@@ -1189,7 +1189,7 @@
                 
                 const angle = Phaser.Math.Angle.Between(
                     this.player.x, this.player.y,
-                    this.pointer.worldX, this.pointer.worldY
+                    this.input.mousePointer.worldX, this.input.mousePointer.worldY
                 );
                 
                 for (let i = 0; i < weapon.bulletCount; i++) {
@@ -1212,7 +1212,7 @@
             }
 
             createBullet(x, y, angle, speed, damage, color, isPlayer) {
-                const offsetDistance = 50;
+                const offsetDistance = 30;
                 const startX = x + Math.cos(angle) * offsetDistance;
                 const startY = y + Math.sin(angle) * offsetDistance;
                 
@@ -1230,8 +1230,9 @@
                 bullet.damage = damage;
                 bullet.isPlayer = isPlayer;
                 
-                bullet.body.velocity.x = Math.cos(angle) * speed;
-                bullet.body.velocity.y = Math.sin(angle) * speed;
+                const velX = Math.cos(angle) * speed;
+                const velY = Math.sin(angle) * speed;
+                bullet.setVelocity(velX, velY);
                 
                 return bullet;
             }
@@ -1475,11 +1476,11 @@
                 
                 const angle = Phaser.Math.Angle.Between(
                     this.player.x, this.player.y,
-                    this.pointer.worldX, this.pointer.worldY
+                    this.input.mousePointer.worldX, this.input.mousePointer.worldY
                 );
                 this.player.setRotation(angle + Math.PI / 4);
                 
-                if (this.pointer.isDown) {
+                if (this.input.mousePointer.isDown) {
                     this.fireWeapon();
                 }
                 
