@@ -595,12 +595,12 @@
                 this.player.body.setSize(35, 35);
                 this.player.body.setOffset(2.5, 2.5);
                 
-                this.playerEye1 = this.add.sprite(this.player.x - 8, this.player.y - 5, 'pixel');
+                this.playerEye1 = this.add.sprite(this.player.x - 5, this.player.y - 5, 'pixel');
                 this.playerEye1.setDisplaySize(8, 8);
                 this.playerEye1.setTint(0xffffff);
                 this.playerEye1.setDepth(11);
                 
-                this.playerEye2 = this.add.sprite(this.player.x + 8, this.player.y - 5, 'pixel');
+                this.playerEye2 = this.add.sprite(this.player.x + 5, this.player.y - 5, 'pixel');
                 this.playerEye2.setDisplaySize(8, 8);
                 this.playerEye2.setTint(0xffffff);
                 this.playerEye2.setDepth(11);
@@ -1210,21 +1210,18 @@
                 const startX = x + Math.cos(angle) * offsetDistance;
                 const startY = y + Math.sin(angle) * offsetDistance;
                 
-                const bullet = this.add.sprite(startX, startY, 'pixel');
+                const bullet = this.physics.add.sprite(startX, startY, 'pixel');
                 bullet.setDisplaySize(12, 12);
                 bullet.setDepth(isPlayer ? 12 : 9);
                 bullet.setOrigin(0.5, 0.5);
                 bullet.setAlpha(1);
                 bullet.setTint(color);
                 
-                this.physics.world.enable(bullet);
                 bullet.body.setSize(10, 10);
                 bullet.body.setOffset(1, 1);
                 
                 bullet.damage = damage;
                 bullet.isPlayer = isPlayer;
-                bullet.bulletVelocityX = Math.cos(angle) * speed;
-                bullet.bulletVelocityY = Math.sin(angle) * speed;
                 
                 if (isPlayer) {
                     this.playerBullets.add(bullet);
@@ -1232,8 +1229,10 @@
                     this.enemyBullets.add(bullet);
                 }
                 
-                bullet.body.velocity.x = bullet.bulletVelocityX;
-                bullet.body.velocity.y = bullet.bulletVelocityY;
+                const velX = Math.cos(angle) * speed;
+                const velY = Math.sin(angle) * speed;
+                bullet.body.velocity.x = velX;
+                bullet.body.velocity.y = velY;
                 
                 return bullet;
             }
