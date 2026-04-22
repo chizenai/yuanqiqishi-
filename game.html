@@ -571,8 +571,8 @@
                 
                 this.createRoom(true);
                 
-                this.isInvincible = true;
-                this.invincibilityTimer = 5000;
+                this.isInvincible = false;
+                this.invincibilityTimer = 0;
                 
                 this.setupControls();
                 this.setupCollisions();
@@ -928,7 +928,9 @@
                 this.invincibilityTimer = CONFIG.invincibilityFrames;
                 
                 this.cameras.main.shake(100, 0.01);
-                this.player.setAlpha(0.5);
+                this.player.setAlpha(0.8);
+                if (this.playerEye1) this.playerEye1.setAlpha(0.8);
+                if (this.playerEye2) this.playerEye2.setAlpha(0.8);
                 
                 this.updateUI();
                 
@@ -1183,7 +1185,7 @@
                 
                 const angle = Phaser.Math.Angle.Between(
                     this.player.x, this.player.y,
-                    this.input.mousePointer.worldX, this.input.mousePointer.worldY
+                    this.input.activePointer.worldX, this.input.activePointer.worldY
                 );
                 
                 for (let i = 0; i < weapon.bulletCount; i++) {
@@ -1204,23 +1206,25 @@
             }
 
             createBullet(x, y, angle, speed, damage, color, isPlayer) {
-                const offsetDistance = 30;
+                const offsetDistance = 20;
                 const startX = x + Math.cos(angle) * offsetDistance;
                 const startY = y + Math.sin(angle) * offsetDistance;
                 
-                const bullet = this.physics.add.sprite(startX, startY, 'pixel');
+                const bullet = this.add.sprite(startX, startY, 'pixel');
                 bullet.setDisplaySize(12, 12);
                 bullet.setDepth(isPlayer ? 12 : 9);
                 bullet.setOrigin(0.5, 0.5);
                 bullet.setAlpha(1);
+                bullet.setTint(color);
                 
+                this.physics.world.enable(bullet);
                 bullet.body.setSize(10, 10);
                 bullet.body.setOffset(1, 1);
                 
-                bullet.setTint(color);
-                
                 bullet.damage = damage;
                 bullet.isPlayer = isPlayer;
+                bullet.bulletVelocityX = Math.cos(angle) * speed;
+                bullet.bulletVelocityY = Math.sin(angle) * speed;
                 
                 if (isPlayer) {
                     this.playerBullets.add(bullet);
@@ -1228,9 +1232,8 @@
                     this.enemyBullets.add(bullet);
                 }
                 
-                const velX = Math.cos(angle) * speed;
-                const velY = Math.sin(angle) * speed;
-                bullet.setVelocity(velX, velY);
+                bullet.body.velocity.x = bullet.bulletVelocityX;
+                bullet.body.velocity.y = bullet.bulletVelocityY;
                 
                 return bullet;
             }
@@ -1423,15 +1426,8 @@
                     this.dashCooldownTimer -= delta;
                 }
                 
-                if (this.isInvincible && !this.isDashing) {
+                if (this.isInvincible) {
                     this.invincibilityTimer -= delta;
-                    
-                    const blinkRate = 200;
-                    const isBlinkOn = Math.floor(this.invincibilityTimer / blinkRate) % 2 === 0;
-                    this.player.setAlpha(isBlinkOn ? 0.7 : 1);
-                    
-                    if (this.playerEye1) this.playerEye1.setAlpha(isBlinkOn ? 0.7 : 1);
-                    if (this.playerEye2) this.playerEye2.setAlpha(isBlinkOn ? 0.7 : 1);
                     
                     if (this.invincibilityTimer <= 0) {
                         this.isInvincible = false;
@@ -1468,12 +1464,6 @@
                 if (this.playerEye2) {
                     this.playerEye2.setPosition(this.player.x + 5, this.player.y - 5);
                 }
-                
-                const angle = Phaser.Math.Angle.Between(
-                    this.player.x, this.player.y,
-                    this.input.activePointer.worldX, this.input.activePointer.worldY
-                );
-                this.player.setRotation(angle + Math.PI / 4);
                 
                 if (this.input.activePointer.isDown) {
                     this.fireWeapon();
